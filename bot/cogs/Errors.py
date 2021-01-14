@@ -1,29 +1,29 @@
-import discord
-import sys
 import asyncio
+import sys
 import traceback
+
+import discord
 from discord.ext import commands
 
 
 class Errors(commands.Cog):
+    '''
+    An error handler
+    '''
     def __init__(self, bot):
         self.bot=bot
 
 
     @commands.Cog.listener()
     async def on_command_error(self, ctx, error):
-        """The event triggered when an error is raised while invoking a command.
-        Parameters
-        ------------
-        ctx: commands.Context
-            The context used for command invocation.
-        error: commands.CommandError
-            The Exception raised.
+        """
+        The default command error handler provided by the bot.
         """
         if hasattr(ctx.command, 'on_error'):
             return
 
         cog = ctx.cog
+
         if cog:
             if cog._get_overridden_method(cog.cog_command_error) is not None:
                 return
@@ -44,7 +44,8 @@ class Errors(commands.Cog):
                 pass
 
         elif isinstance(error, commands.BadArgument):
-            await ctx.send(error)
+            error_embed = discord.Embed(title = "Error!", description = error, colour = discord.Colour.red())
+            await ctx.send(embed = error_embed)
 
         elif isinstance(error, discord.errors.HTTPException):
             await ctx.send("There was an error, please try again later. If you are trying to message someone, they might have it turned off.")
@@ -67,8 +68,9 @@ class Errors(commands.Cog):
             print('Ignoring exception in command {}:'.format(ctx.command), file=sys.stderr)
             traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
 
-            
-
 
 def setup(bot):
+    '''
+    Adds the cog
+    '''
     bot.add_cog(Errors(bot))

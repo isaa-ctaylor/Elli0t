@@ -1,22 +1,27 @@
 import json
 
-
 def get_default_prefix():
-    with open('prefixes.json', 'r') as f:
+    '''
+    Returns the default prefix
+    '''
+    with open('/media/Elli0t/Elli0t/bot/json/data.json', 'r') as f:
         prefixes = json.load(f)
     
-    return prefixes["default"]
+    return prefixes["defaults"]["prefix"]
 
 
-def get_prefix(guild_id):
-    with open('prefixes.json', 'r') as f:
+def get_prefix(bot, message):
+    '''
+    Returns the prefix for the given guild
+    '''
+    with open('/media/Elli0t/Elli0t/bot/json/data.json', 'r') as f:
         prefixes = json.load(f)
 
-    return prefixes[str(guild_id)]
+    return prefixes["servers"][str(message.guild.id)]["prefix"]
 
 
 def get_cogs():
-    with open("cogs.json", "r") as f:
+    with open("/media/Elli0t/Elli0t/bot/json/cogs.json", "r") as f:
         cogs = json.load(f)
 
     return cogs

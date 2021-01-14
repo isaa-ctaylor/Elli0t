@@ -1,5 +1,6 @@
-import discord
 import asyncio
+
+import discord
 from discord.ext import commands
 
 expected = {
@@ -14,8 +15,10 @@ expected = {
     9: "9️⃣"
 }
 
-
 def stringify(board):
+    '''
+    Turns the given dict into a str
+    '''
     board_string = ""
 
     x = 1
@@ -33,6 +36,9 @@ def stringify(board):
     return board_string
 
 def checkWin(board):
+    '''
+    Checks if the board is in a win state
+    '''
     if board["1"] == board["2"] == board["3"]:
         return True
     elif board["4"] == board["5"] == board["6"]:
@@ -53,6 +59,9 @@ def checkWin(board):
         return False
 
 def checkDraw(board):
+    '''
+    Checks if the board is in a draw state
+    '''
     for key in expected:
         if board[str(key)] == expected[key]:
             return False
@@ -61,12 +70,18 @@ def checkDraw(board):
         
 
 class Games(commands.Cog):
+    '''
+    Little minigames to get you competetive
+    '''
     def __init__(self, bot):
         self.bot=bot
 
 
     @commands.command(name = "tictactoe", aliases = ["ttt", "tic", "tac", "toe"])
     async def _tictactoe(self, ctx, opponent: discord.Member, timeout: int = 60):
+        '''
+        Tictactoe... not much else to say
+        '''
         
         if opponent == ctx.author:
             return await ctx.send("You can't play against yourself!")
@@ -158,4 +173,7 @@ class Games(commands.Cog):
                 pass
 
 def setup(bot):
+    '''
+    Adds the cog
+    '''
     bot.add_cog(Games(bot))

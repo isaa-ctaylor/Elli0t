@@ -1,7 +1,7 @@
 import discord
 import json
 from discord.ext import commands
-from cogs.global_functions import get_cogs
+from utils.global_functions import get_cogs
 import asyncio
 
 

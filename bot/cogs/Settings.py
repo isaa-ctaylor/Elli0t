@@ -16,6 +16,7 @@ class Settings(commands.Cog):
             settings_embed.add_field(name = "prefix", value = "Change the prefix for your server!", inline = True)
             settings_embed.add_field(name = "tickets", value = "Configure tickets for your server!", inline = True)
             settings_embed.add_field(name = "chat", value = "Configure the chat filter", inline = True)
+            await ctx.send(embed = settings_embed)
 
 
 

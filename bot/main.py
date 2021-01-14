@@ -3,12 +3,11 @@ import os
 import random
 
 import discord
-from discord.ext import commands
 import pretty_help
 from discord.ext import commands
 from dotenv import load_dotenv
 
-from cogs.global_functions import get_cogs, get_default_prefix
+from utils.global_functions import get_cogs, get_default_prefix, get_prefix
 
 load_dotenv()
 
@@ -16,24 +15,21 @@ default_prefix = get_default_prefix()
 
 initial_cogs = get_cogs()
 
-description = """Elli0t is a multi-purpose Discord bot aimed at making your life easier!
-Elli0t contains many modules such as modules for moderation, a ticketing system, music playing and general fun too!"""
+description = """
+Elli0t is a multi-purpose discord bot aiming to make your life easier. He contains many different modules, spanning moderation, fun and games. Elli0t is open-source and all code can be found on github: (https://github.com/isaa-ctaylor/Elli0t) Any contributions would be welcome!
+"""
 
-# create a class that inherits from discord.ext.commands.Bot
 class Elli0t(discord.ext.commands.AutoShardedBot):
-    async def close(self):  # subclass close()
-        print("\nConnection safely closed.")  # prints to confirm shutdown
+    '''
+    A class that inherits from discord.ext.commands.AutoShardedBot
+    '''
+    async def close(self):
+        '''
+        Subclass of close, to confirm shutdown
+        '''
         await self.change_presence(status = discord.Status.offline, activity = None)
-        await super().close()  # calls the super of close() to properly shut down
+        await super().close()
 
-
-# define a function to get custom prefix for each server, called in the definition of `bot`
-def get_prefix(bot, message):
-    with open('prefixes.json', 'r') as f:  # opens prefixes.json
-        prefixes = json.load(f)  # loads prefixes.json to a python dictionary
-
-    # returns the prefix for that server
-    return prefixes[str(message.guild.id)]
 
 intents = discord.Intents.default()
 intents.voice_states = True
@@ -47,14 +43,18 @@ for cog in initial_cogs:
         bot.load_extension(cog)
     except Exception as e:
         print(e)
-
+        
+async def presence():
+    await bot.change_presence(status = discord.Status.online, activity = discord.Game(name = "around while testing"))
 
 @bot.event
 async def on_ready():
-    '''Called when the client is done preparing the data received from Discord. Usually after login is successful and the Client.guilds and co. are filled up.
+    '''
+    Called when the client is done preparing the data received from Discord. Usually after login is successful and the Client.guilds and co. are filled up.
     '''
 
     print("Bot is connected to discord.")
+    await presence()
 
 
 bot.run(os.getenv("TOKEN"))
