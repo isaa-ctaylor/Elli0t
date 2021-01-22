@@ -13,38 +13,52 @@ class Moderation(commands.Cog):
     def __init__(self, bot):
         self.bot=bot
 
-    @commands.command(name = "filter")
+    @commands.group(name = "filter")
     @commands.has_guild_permissions(manage_messages = True)
-    async def _filter(self, ctx, option = None):
+    async def _filter(self, ctx):
         '''
-        Toggle the chat filter
+        Manage the chat filter
+        '''
+        if not ctx.invoked_subcommand:
+            with open("/media/Elli0t/Elli0t/bot/json/data.json", "r") as f:
+                data = json.load(f)
+
+            mode = "on" if data["servers"][str(ctx.guild.id)]["filter"]["enabled"] == True else "off"
+
+            success_embed = discord.Embed(title = "Chat filter", description = f"The filter is `{mode}`", colour = discord.Colour.green())
+            await ctx.reply(embed = success_embed)
+
+    @_filter.command(name = "toggle")
+    @commands.has_guild_permissions(manage_messages = True)
+    async def _toggle(self, ctx, option = None):
+        '''
+        Turn the filter on or off
         '''
         with open("/media/Elli0t/Elli0t/bot/json/data.json", "r") as f:
-            data = json.load(f)
-        
+                data = json.load(f)
+
         if option and option.lower() in ["on", "true"]:
             data["servers"][str(ctx.guild.id)]["filter"]["enabled"] = True
         elif option and option.lower() in ["off", "false"]:
             data["servers"][str(ctx.guild.id)]["filter"]["enabled"] = False
         else:
-            error_embed = discord.Embed(title = "Error!", description = 'Please enter "on" or "off"' , colour = discord.Colour.red())
-            return await ctx.send(embed = error_embed)
-        
+            error_embed = discord.Embed(title = "Error!", description = 'Please enter `on` or `off`' , colour = discord.Colour.red())
+            return await ctx.reply(embed = error_embed)
+
         with open("/media/Elli0t/Elli0t/bot/json/data.json", "w") as f:
             json.dump(data, f, indent = 4)
-        
-        mode = "on" if data["servers"][str(ctx.guild.id)]["filter"]["enabled"] == True else "off"
-        
-        success_embed = discord.Embed(title = "Success!", description = f"Turned the filter {mode}", colour = discord.Colour.green())
-        await ctx.send(embed = success_embed)
 
-    @commands.command(name = "mode")
+        mode = "on" if data["servers"][str(ctx.guild.id)]["filter"]["enabled"] == True else "off"
+
+        success_embed = discord.Embed(title = "Success!", description = f"Turned the filter `{mode}`", colour = discord.Colour.green())
+        await ctx.reply(embed = success_embed)
+
+    @_filter.command(name = "mode")
     @commands.has_guild_permissions(manage_messages = True)
     async def _filtermode(self, ctx, mode: str):
         '''
         Change the mode of the filter.
         '''
-
         with open("/media/Elli0t/Elli0t/bot/json/data.json", "r") as f:
             data = json.load(f)
 
@@ -55,170 +69,269 @@ class Moderation(commands.Cog):
         elif mode.lower() == "both":
             data["servers"][str(ctx.guild.id)]["filter"]["mode"] = 3
         else:
-            error_embed = discord.Embed(title = "Error!", description = 'Please enter "default" to use the default word list, "custom" to use your server word list or "both" to use both' , colour = discord.Colour.red())
-            return await ctx.send(embed = error_embed)
+            error_embed = discord.Embed(title = "Error!", description = 'Please enter `default` to use the default word list, `custom` to use your server word list or `both` to use both' , colour = discord.Colour.red())
+            return await ctx.reply(embed = error_embed)
 
         with open("/media/Elli0t/Elli0t/bot/json/data.json", "w") as f:
             json.dump(data, f, indent = 4)
 
-        await ctx.send(f"Changed the mode to `{mode}`")
+        success_embed = discord.Embed(title = "Success!", description = f"Changed the filter mode to `{mode.lower()}`", colour = discord.Colour.green())
+        await ctx.reply(embed = success_embed)
 
-    # @commands.command(name = "customadd")
-    # @commands.has_guild_permissions(manage_messages = True)
-    # async def _customadd(self, ctx, *, words):
-    #     '''Add custom words to your server's blacklist
+    @_filter.group(name = "custom", aliases = ["words"])
+    @commands.has_guild_permissions(manage_messages = True)
+    async def _custom(self, ctx):
+        '''
+        Manage your custom server blacklist
+        '''
+        if not ctx.invoked_subcommand:
+            with open("/media/Elli0t/Elli0t/bot/json/data.json", "r") as f:
+                data = json.load(f)
 
-    #     Parameters
-    #     ----------
-    #     words: str
-    #         The words to add, must be seperated by a comma then a space: ", "
+            custom_list = data["servers"][str(ctx.guild.id)]["filter"]["custom"]
 
-    #     Usage
-    #     -----
-    #     customadd <words>
-    #     '''
-    #     words = words.split(", ")
-
-    #     with open("naughty.json", "r") as f:
-    #         naughty = json.load(f)
-        
-    #     for word in words:
-    #         naughty[str(ctx.guild.id)]["custom"].append(word)
-
-    #     with open("naughty.json", "w") as f:
-    #         json.dump(naughty, f, indent = 4)
-
-    #     await ctx.send(f"Added! See your server words using the {get_prefix(ctx.guild.id)}words command")
-
-    # @commands.command(name = "words")
-    # @commands.has_guild_permissions(manage_messages = True)
-    # async def _words(self, ctx):
-    #     '''Displays the custom words for your server
-
-    #     Usage
-    #     -----
-    #     words
-    #     '''
-    #     with open("naughty.json", "r") as f:
-    #         naughty = json.load(f)
-
-    #     words = "None" if len(naughty[str(ctx.guild.id)]["custom"]) == 0 else ", ".join(naughty[str(ctx.guild.id)]["custom"])
-
-    #     embed = discord.Embed(title = "Your servers custom blacklisted words", description = f"`{words}`", colour = 0xFF0000)
-
-    #     await ctx.send(embed = embed, delete_after = 15)
-
-    # @commands.command(name = "customremove", aliases = ["cr"])
-    # @commands.has_guild_permissions(manage_messages = True)
-    # async def _customremove(self, ctx, word):
-    #     with open("naughty.json", "r") as f:
-    #         naughty = json.load(f)
-
-    #     if word in naughty[str(ctx.guild.id)]["custom"]:
-    #         naughty[str(ctx.guild.id)]["custom"].pop(naughty[str(ctx.guild.id)]["custom"].index(word))
-    #         await ctx.send(f"Removed {word} from your custom words")
-    #     else:
-    #         await ctx.send("Couldn't find that word, please try again")
-        
-    #     with open("naughty.json", "w") as f:
-    #         json.dump(naughty, f, indent = 4)
-        
-
-    # @commands.Cog.listener(name = "on_message")
-    # async def auto_remove_words(self, message):
-    #     found = False
-
-    #     with open("naughty.json", "r") as f:
-    #         naughty = json.load(f)
-
-    #     author = await message.guild.fetch_member(message.author.id)
-
-    #     if not author.top_role > message.guild.me.top_role:
-    #         if naughty[str(message.guild.id)]["on"] == True:
-    #             if naughty[str(message.guild.id)]["mode"] == 1:
-    #                 if message.content.lower() in naughty["default"]:
-    #                     found = True
-    #             elif naughty[str(message.guild.id)]["mode"] == 2:
-    #                 if message.content.lower() in naughty[str(message.guild.id)]["custom"]:
-    #                     found = True
-    #             elif naughty[str(message.guild.id)]["mode"] == 3:
-    #                 if message.content.lower() in naughty["default"] or message.content.lower() in naughty[str(message.guild.id)]["custom"]:
-    #                     found = True
-
-    #     if found == True:
-    #         await message.delete()
-    #         await message.channel.send(f"{message.author.mention}, your message has been removed as it contains blacklisted words.", delete_after = 10)
+            words_embed = discord.Embed(title = "Your server's custom words", description = ", ".join(custom_list))
+            try:
+                await ctx.author.send(embed = words_embed)
+                return await ctx.reply(embed = discord.Embed(title = "Done!", description = f"{ctx.author.mention}, check your DMs", colour = discord.Colour.green()))
+            except discord.errors.HTTPException:
+                return await ctx.reply(embed = discord.Embed(title = "Error!", description = f"{ctx.author.mention}, please enable your DMs!", colour = discord.Colour.red()))
 
 
-    # @commands.command(name = "ban", aliases=["banish"])
-    # @commands.has_permissions(ban_members=True)
-    # async def _ban(self, ctx, user: Sinner=None, reason=None):
-    #     """Bans the given user"""
-        
-    #     if not user: # checks if there is a user
-    #         return await ctx.send("You must specify a user")
-        
-    #     try: # Tries to ban user
-    #         await user.ban(reason = reason or "None")
-    #         banned_embed = discord.Embed(title = "Success!", description = f"{user.mention} has been successfully banned\nReason: `{reason}`", colour = discord.Colour.green())
-    #         await ctx.send(embed = banned_embed)
-    #     except discord.Forbidden:
-    #         error_embed = discord.Embed(title = f"Error!", description = f"{user.mention} has a higher role than me!\n{user.mention}'s highest role: {user.top_role.mention}\nMy highest role: {user.guild.me.top_role.mention}", colour = discord.Colour.red())
-    #         return await ctx.send(embed = error_embed)
+    @_custom.command(name = "add")
+    @commands.has_guild_permissions(manage_messages = True)
+    async def _add(self, ctx, *, words = None):
+        '''
+        Add words to your server blacklist
+        '''
+        if not words:
+            error_embed = discord.Embed(title = "Error!", description = "Please enter some words! Seperate the words with `, `")
+            return await ctx.reply(embed = error_embed)
+        else:
+            with open("/media/Elli0t/Elli0t/bot/json/data.json", "r") as f:
+                data = json.load(f)
 
-    # @commands.command(name = "mute", aliases = ["shush"])
-    # @commands.has_guild_permissions(mute_members = True)
-    # async def _mute(self, ctx, user: Sinner, reason=None):
-    #     """Mutes the given user."""
-    #     role = discord.utils.get(ctx.guild.roles, name="Muted") # retrieves muted role returns none if there isn't 
-    #     if not role: # checks if there is muted role
-    #         try: # creates muted role 
-    #             muted = await ctx.guild.create_role(name="Muted", reason="To use for muting")
-    #             for channel in ctx.guild.channels: # removes permission to view and send in the channels 
-    #                 await channel.set_permissions(muted, send_messages=False)
-    #         except discord.Forbidden:
-    #             return await ctx.send("I have no permissions to make a muted role") # self-explainatory
-    #         await user.add_roles(muted) # adds newly created muted role
-    #         muted_embed = discord.Embed(title = "Success!", description = f"{user.mention} has been successfully muted\nReason: `{reason}`", colour = discord.Colour.green())
-    #         await ctx.send(embed = muted_embed)
-    #     else:
-    #         for channel in ctx.guild.channels: # removes permission to view and send in the channels 
-    #                 await channel.set_permissions(role, send_messages=False)
-    #         await user.add_roles(role) # adds already existing muted role
-    #         muted_embed = discord.Embed(title = "Success!", description = f"{user.mention} has been successfully muted\nReason: `{reason}`", colour = discord.Colour.green())
-    #         await ctx.send(embed = muted_embed)
+            custom_list = data["servers"][str(ctx.guild.id)]["filter"]["custom"]
+
+            words = words.split(", ")
+
+            for word in words:
+                if not word in custom_list:
+                    custom_list.append(word)
+
+            words = ", ".join(words)
+
+            with open("/media/Elli0t/Elli0t/bot/json/data.json", "w") as f:
+                json.dump(data, f, indent = 4)
+
+            success_embed = discord.Embed(title = "Success!", description = f"Successfully added `{words}`")
+            await ctx.reply(embed = success_embed, delete_after = 5)
+
+    @_custom.command(name = "remove", aliases = ["delete"])
+    @commands.has_guild_permissions(manage_messages = True)
+    async def _remove(self, ctx, *, words = None):
+        '''
+        Remove words from your server blacklist
+        '''
+        if not words:
+            error_embed = discord.Embed(title = "Error!", description = "Please enter some words! Seperate the words with `, `")
+            return await ctx.reply(embed = error_embed)
+
+        else:
+            with open("/media/Elli0t/Elli0t/bot/json/data.json", "r") as f:
+                data = json.load(f)
+
+            custom_list = data["servers"][str(ctx.guild.id)]["filter"]["custom"]
+
+            words = words.split(", ")
+            no_find = []
+
+            for word in words:
+                if word in custom_list:
+                    custom_list.pop(custom_list.index(word))
+                else:
+                    no_find.append(word)
+
+            words = ", ".join(words)
+            no_find = ", ".join(no_find)
+
+            with open("/media/Elli0t/Elli0t/bot/json/data.json", "w") as f:
+                json.dump(data, f, indent = 4)
+
+            if len(no_find) == 0:
+                success_embed = discord.Embed(title = "Success!", description = f"Successfully removed `{words}`")
+                await ctx.reply(embed = success_embed, delete_after = 5)
+            else:
+                error_embed = discord.Embed(title = "Error!", description = f"Couldn't find `{no_find}` in your list of words!", colour = discord.Colour.red())
+                await ctx.reply(embed = error_embed, delete_after = 5)
+
+    @commands.Cog.listener(name = "on_message")
+    async def remove_words(self, message):
+        '''
+        Removes messages containing words in the blacklist
+        '''
+        if message.guild:
+            if type(message.author) == discord.Member:
+                if message.author.top_role < message.guild.me.top_role:
+                    found = False
+                    with open("/media/Elli0t/Elli0t/bot/json/data.json", "r") as f:
+                        data = json.load(f)
+
+                    enabled = data["servers"][str(message.guild.id)]["filter"]["enabled"]
+                    mode = data["servers"][str(message.guild.id)]["filter"]["mode"]
+                    default = data["defaults"]["words"]
+                    custom = data["servers"][str(message.guild.id)]["filter"]["custom"]
+
+                    if enabled:
+                        if mode == 1:
+                            for word in default:
+                                if word in message.content.lower():
+                                    found = True
+                                    break
+                        elif mode == 2:
+                            for word in custom:
+                                if word in message.content.lower():
+                                    found = True
+                                    break
+                        elif mode == 3:
+                            for word in default:
+                                if word in message.content.lower():
+                                    found = True
+                                    break
+                            if not found:
+                                for word in custom:
+                                    if word in message.content.lower():
+                                        found = True
+                                        break
+
+                        if found:
+                            try:
+                                await message.delete()
+                                deleted_embed = discord.Embed(title = "Uh oh!", description = f"{message.author.mention}, your message was removed because it contains blacklisted words!", colour = discord.Colour.red())
+                                await message.channel.send(message.author.mention, embed = deleted_embed, delete_after = 5)
+                            except discord.errors.Forbidden:
+                                try:
+                                    await message.guild.owner.send("The chat filter cannot be used because I don't have the `manage_messages` perm!")
+                                except discord.errors.HTTPException:
+                                    pass
+
+    @commands.command(name = "ban", aliases = ["banish"])
+    @commands.has_guild_permissions(ban_members = True)
+    async def _ban(self, ctx, member: discord.Member, *, reason = "None"):
+        '''
+        Bans the given user
+        '''
+        if member.top_role > ctx.author.top_role:
+            error_embed = discord.Embed(title = "Error!", description = "You can't punish someone with a higher role than yourself!", colour = discord.Colour.red())
+            return await ctx.reply(embed = error_embed)
+
+        elif member == ctx.author:
+            error_embed = discord.Embed(title = "Error!", description = "You can't ban yourself!", colour = discord.Colour.red())
+            return await ctx.reply(embed = error_embed)
+
+        else:
+            try:
+                await member.ban(reason = reason)
+                banned_embed = discord.Embed(title = "Success!", description = f"Successfully banned {member.mention}\nReason: `{reason}`", colour = discord.Colour.green())
+                await ctx.reply(embed = banned_embed)
+            except discord.errors.Forbidden:
+                error_embed = discord.Embed(title = "Error!", description = f"I can't ban {member.mention} because they have a higher role than me!", colour = discord.Colour.red())
+                await ctx.reply(embed = error_embed)
+
+    @commands.command(name = "unban", aliases = ["unbanish"])
+    @commands.has_guild_permissions(ban_members = True)
+    async def _unban(self, ctx, member: discord.Object):
+        '''
+        Unbans the given user
+        '''
+        try:
+            await ctx.guild.unban(member)
+            unbanned_embed = discord.Embed(title = "Success!", description = f"Successfully unbanned {member.mention}", colour = discord.Colour.green())
+            return await ctx.reply(embed = unbanned_embed)
+
+        except discord.errors.HTTPException:
+            error_embed = discord.Embed(title = "Error!", description = f"Please enter the member id in the format `{self.bot.user.id}`", colour = discord.Colour.red())
+            return await ctx.reply(embed = error_embed)
+
+    @commands.command(name = "mute", aliases = ["shush"])
+    @commands.has_guild_permissions(mute_members = True)
+    async def _mute(self, ctx, member: discord.Member, *, reason):
+        '''
+        Mutes the given user
+        '''
+
+        if member == ctx.author:
+            error_embed = discord.Embed(title = "Error!", description = "You can't mute yourself!", colour = discord.Colour.red())
+            return await ctx.reply(embed = error_embed)
+
+        if (role := discord.utils.get(ctx.guild.roles, name = "Muted")):
+            await member.add_roles(role, reason = reason)
+
+            success_embed = discord.Embed(title = "Success!", description = f"Successfully muted {member.mention}\nReason: `{reason}`", colour = discord.Colour.green())
+            await ctx.reply(embed = success_embed)
+        else:
+            role = await ctx.guild.create_role(name = "Muted", reason = "Mute command needs Muted role")
+            await member.add_roles(role, reason = reason)
+            for channel in ctx.guild.channels:
+                await channel.set_permissions(role, read_messages = True, send_messages = False)
+
+            success_embed = discord.Embed(title = "Success!", description = f"Successfully muted {member.mention}\nReason: `{reason}`", colour = discord.Colour.green())
+            await ctx.reply(embed = success_embed)
+
+    @commands.command(name = "unmute", aliases = ["unshush"])
+    @commands.has_guild_permissions(mute_members = True)
+    async def _unmute(self, ctx, member: discord.Member):
+        '''
+        Unmutes the given user
+        '''
+        try:
+            if (role := discord.utils.get(ctx.guild.roles, name = "Muted")) in member.roles:
+                await member.remove_roles(role)
+                success_embed = discord.Embed(title = "Success!", description = f"Successfully unmuted {member.mention}", colour = discord.Colour.green())
+                await ctx.reply(embed = success_embed)
+            else:
+                error_embed = discord.Embed(title = "Error!", description = f"{member.mention} hasn't been muted!", colour = discord.Colour.green())
+                await ctx.reply(embed = error_embed)
+        except ValueError:
+            error_embed = discord.Embed(title = "Error!", description = f"{member.mention} hasn't been muted!", colour = discord.Colour.green())
+            await ctx.reply(embed = error_embed)
+        except discord.errors.Forbidden:
+            error_embed = discord.Embed(title = "Error!", description = f"I can't unmute {member.mention} because they have a higher role than me!", colour = discord.Colour.green())
+            await ctx.reply(embed = error_embed)
+
+    @commands.command(name = "block")
+    @commands.has_guild_permissions(manage_messages = True)
+    async def _block(self, ctx, member: discord.Member):
+        '''
+        Block the given member from speaking in the current channel
+        '''
+        await ctx.channel.set_permissions(member, send_messages = False)
+        success_embed = discord.Embed(title = "Success!", description = f"Blocked {member.mention} from speaking in this channel", colour = discord.Colour.green())
+        await ctx.reply(embed = success_embed)            
     
-    # @commands.command(name = "kick", aliases = ["boot"])
-    # @commands.has_guild_permissions(kick_members = True)
-    # async def _kick(self, ctx, user: Sinner=None, reason=None):
-    #     if not user: # checks if there is a user 
-    #         return await ctx.send("You must specify a user")
+    @commands.command(name = "unblock")
+    @commands.has_guild_permissions(manage_messages = True)
+    async def _unblock(self, ctx, member: discord.Member):
+        '''
+        Unblock the given member so they can speak in the current channel
+        '''
+        await ctx.channel.set_permissions(member, send_messages = True)
+        success_embed = discord.Embed(title = "Success!", description = f"Unblocked {member.mention}", colour = discord.Colour.green())
+        await ctx.reply(embed = success_embed)  
         
-    #     try: # tries to kick user
-    #         await ctx.guild.kick(user, f"By {ctx.author} for {reason}" or f"By {ctx.author} for None Specified") 
-    #     except discord.Forbidden:
-    #         error_embed = discord.Embed(title = f"Error!", description = f"{user.mention} has a higher role than me!\n{user.mention}'s highest role: {user.top_role.mention}\nMy highest role: {user.guild.me.top_role.mention}", colour = discord.Colour.red())
-    #         return await ctx.send(embed = error_embed)
-
-    # @commands.command(name = "unmute", aliases = ["unshush"])
-    # @commands.has_guild_permissions(mute_members = True)
-    # async def _unmute(self, ctx, user: Redeemed):
-    #     """Unmutes a muted user"""
-    #     await user.remove_roles(discord.utils.get(ctx.guild.roles, name="Muted")) # removes muted role
-    #     await ctx.send(f"{user.mention} has been unmuted")
-
-    # @commands.command(name='unban')
-    # @commands.has_guild_permissions(ban_members = True)
-    # async def _unban(self, ctx, *, member: discord.Member):
-    #     banned_users = await ctx.guild.bans()
-    #     member_name, member_discriminator = member.split('#')
-
-    #     for ban_entry in banned_users:
-    #         user = ban_entry.banned_users
-
-    #         if (user.name, user.discriminator) == (member_name, member_discriminator):
-    #             await ctx.guild.unban(user)
-    #             return await ctx.message.add_reaction("👍")
-
+    @commands.command(name = "kick", aliases = ["yeet"])
+    @commands.has_guild_permissions(kick_members = True)
+    async def _kick(self, ctx, member: discord.Member, *, reason = "None"):
+        '''
+        Kick the given member
+        '''
+        if member.top_role > ctx.author.top_role:
+            error_embed = discord.Embed(title = "Error!", description = "You can't punish someone with a higher role than yourself!", colour = discord.Colour.red())
+            return await ctx.reply(embed = error_embed)
+        
+        await member.kick(reason = reason)
+        success_embed = discord.Embed(title = "Success!", description = f"Kicked {member.mention}\nReason: {reason}", colour = discord.Colour.green())
+        await ctx.reply(embed = success_embed)
+    
 def setup(bot):
     bot.add_cog(Moderation(bot))

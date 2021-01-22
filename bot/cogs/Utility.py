@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands
 import asyncio
 import json
-from cogs.global_functions import get_default_prefix, timeInSeconds
+from utils.global_functions import get_default_prefix, timeInSeconds
 import random
 import datetime
 

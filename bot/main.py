@@ -1,3 +1,4 @@
+import datetime
 import json
 import os
 import random
@@ -19,6 +20,7 @@ description = """
 Elli0t is a multi-purpose discord bot aiming to make your life easier. He contains many different modules, spanning moderation, fun and games. Elli0t is open-source and all code can be found on github: (https://github.com/isaa-ctaylor/Elli0t) Any contributions would be welcome!
 """
 
+
 class Elli0t(discord.ext.commands.AutoShardedBot):
     '''
     A class that inherits from discord.ext.commands.AutoShardedBot
@@ -27,7 +29,7 @@ class Elli0t(discord.ext.commands.AutoShardedBot):
         '''
         Subclass of close, to confirm shutdown
         '''
-        await self.change_presence(status = discord.Status.offline, activity = None)
+        await self.change_presence(status = discord.Status.offline, activity=None)
         await super().close()
 
 
@@ -35,17 +37,16 @@ intents = discord.Intents.default()
 intents.voice_states = True
 intents.members = True
 
-bot = Elli0t(command_prefix = get_prefix, description=description,
-             help_command=pretty_help.PrettyHelp(), intents = intents, case_insensitive = True)
+bot = Elli0t(command_prefix=get_prefix, description=description,
+             help_command=pretty_help.PrettyHelp(), intents = intents, case_insensitive = True, activity = discord.Game(name="around while testing"))
 
 for cog in initial_cogs:
     try:
         bot.load_extension(cog)
     except Exception as e:
         print(e)
-        
-async def presence():
-    await bot.change_presence(status = discord.Status.online, activity = discord.Game(name = "around while testing"))
+
+bot.start_time = datetime.datetime.utcnow()
 
 @bot.event
 async def on_ready():
@@ -54,7 +55,6 @@ async def on_ready():
     '''
 
     print("Bot is connected to discord.")
-    await presence()
 
 
 bot.run(os.getenv("TOKEN"))

@@ -35,7 +35,7 @@ class Errors(commands.Cog):
             return
 
         if isinstance(error, commands.DisabledCommand):
-            await ctx.send(f'{ctx.command} has been disabled.')
+            await ctx.reply(f'{ctx.command} has been disabled.')
 
         elif isinstance(error, commands.NoPrivateMessage):
             try:
@@ -43,30 +43,47 @@ class Errors(commands.Cog):
             except discord.HTTPException:
                 pass
 
-        elif isinstance(error, commands.BadArgument):
-            error_embed = discord.Embed(title = "Error!", description = error, colour = discord.Colour.red())
-            await ctx.send(embed = error_embed)
-
+        elif isinstance(error, commands.errors.BadArgument):
+            error_embed = discord.Embed(title = "Error!", description = str(error), colour = discord.Colour.red())
+            await ctx.reply(embed = error_embed)
+        
+        elif isinstance(error, commands.errors.TooManyArguments):
+            pass
+        
         elif isinstance(error, discord.errors.HTTPException):
-            await ctx.send("There was an error, please try again later. If you are trying to message someone, they might have it turned off.")
+            await ctx.reply("There was an error, please try again later. If you are trying to message someone, they might have it turned off.")
 
         elif isinstance(error, discord.errors.NotFound):
             pass
 
-        elif isinstance(error, commands.MissingPermissions):
-            await ctx.send("You do not have the correct permissions to do that!")
+        elif isinstance(error, commands.errors.MissingPermissions):
+            perms = ", ".join(error.missing_perms)
+            error_embed = discord.Embed(title = "Error!", description = f"You are missing the following perm(s): `{perms}`", colour = discord.Colour.red())
+            await ctx.reply(embed = error_embed)
 
-        elif isinstance(error, discord.Forbidden):
-            await ctx.send("I couldn't do that, sorry. Try checking my perms")
+        elif isinstance(error, commands.errors.BotMissingPermissions):
+            perms = ", ".join(error.missing_perms)
+            error_embed = discord.Embed(title = "Error!", description = f"I am missing the following perm(s): `{perms}`", colour = discord.Colour.red())
+            await ctx.reply(embed = error_embed)
+
+        elif isinstance(error, discord.errors.Forbidden):
+            await ctx.reply("I couldn't do that, sorry. Try checking my perms")
+            
+        elif isinstance(error, commands.errors.MissingRequiredArgument):
+            error_embed = discord.Embed(title = "Error!", description = f"Missing parameter: `{error.param}`", colour = discord.Colour.red())
+            await ctx.reply(embed = error_embed)
 
         else:
-            await ctx.send("An internal error occured, if this keeps happening, please contact `isaa_ctaylor#2494`")
+            error_embed = discord.Embed(title = "Error!", description = f"Error type: {type(error)}\nError message: {str(error)}\nIf this keeps happening, please contact `isaa_ctaylor#2494`")
+            await ctx.reply(embed = error_embed)
             
             tb = "".join(traceback.format_exception(type(error), error, error.__traceback__))
 
-            await self.bot.get_user(self.bot.owner_id).send(f"Error!\nAuthor: `{ctx.author.name}#{ctx.author.discriminator}`\nGuild: `{ctx.guild.name}`, `{ctx.guild.id}`\nCommand: {ctx.command}\nCog: {ctx.cog}\nTraceback:\n```py\n{tb}\n```")
-            print('Ignoring exception in command {}:'.format(ctx.command), file=sys.stderr)
-            traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
+            try:
+                await self.bot.get_user(self.bot.owner_id).send(f"Error!\nAuthor: `{ctx.author.name}#{ctx.author.discriminator}`\nGuild: `{ctx.guild.name}`, `{ctx.guild.id}`\nCommand: {ctx.command}\nCog: {ctx.cog}\nTraceback:\n```py\n{tb}\n```")
+            except:
+                print('Ignoring exception in command {}:'.format(ctx.command), file=sys.stderr)
+                traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
 
 
 def setup(bot):
