@@ -51,6 +51,7 @@ class Errors(commands.Cog):
             pass
         
         elif isinstance(error, discord.errors.HTTPException):
+            return
             await ctx.reply("There was an error, please try again later. If you are trying to message someone, they might have it turned off.")
 
         elif isinstance(error, discord.errors.NotFound):

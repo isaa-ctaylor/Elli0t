@@ -18,7 +18,7 @@ def get_prefix(bot, message):
     with open('/media/Elli0t/Elli0t/bot/json/data.json', 'r') as f:
         prefixes = json.load(f)
 
-    prefix =  prefixes["servers"][str(message.guild.id)]["prefix"]
+    prefix = prefixes["servers"][str(message.guild.id)]["prefix"]
     return commands.when_mentioned_or(prefix)(bot, message)
 
 

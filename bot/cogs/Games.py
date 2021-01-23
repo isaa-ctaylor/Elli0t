@@ -1,4 +1,5 @@
 import asyncio
+from random_words import RandomWords
 
 import discord
 from discord.ext import commands
@@ -14,6 +15,79 @@ expected = {
     8: "8️⃣",
     9: "9️⃣"
 }
+
+hangman = [
+'''
+```
+ +---+
+ |   |
+     |
+     |
+     |
+     |
+=========```
+''',
+'''
+```
+ +---+
+ |   |
+ O   |
+     |
+     |
+     |
+=========```
+''',
+'''
+```
+ +---+
+ |   |
+ O   |
+ |   |
+     |
+     |
+=========```
+''',
+'''
+```
+ +---+
+ |   |
+ O   |
+/|   |
+     |
+     |
+=========```
+''',
+'''
+```
+ +---+
+ |   |
+ O   |
+/|\  |
+     |
+     |
+=========```
+''',
+'''
+```
+ +---+
+ |   |
+ O   |
+/|\  |
+/    |
+     |
+=========```
+''',
+'''
+```
+ +---+
+ |   |
+ O   |
+/|\  |
+/ \  |
+     |
+=========```
+'''
+]
 
 def stringify(board):
     '''
@@ -68,6 +142,11 @@ def checkDraw(board):
 
     return True
         
+def makestring(letters):
+    if len(letters) == 0:
+        return "None"
+    else:
+        return ", ".join(letters)
 
 class Games(commands.Cog):
     '''
@@ -80,11 +159,12 @@ class Games(commands.Cog):
     @commands.command(name = "tictactoe", aliases = ["ttt", "tic", "tac", "toe"])
     async def _tictactoe(self, ctx, opponent: discord.Member, timeout: int = 60):
         '''
-        Tictactoe... not much else to say
+        Tic Tac Toe... not much else to say
         '''
-        
         if opponent == ctx.author:
             return await ctx.send("You can't play against yourself!")
+        if opponent == ctx.guild.me:
+            return await ctx.send("You can't play against me! (yet)")
         
         reactions = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣"]
 
@@ -102,7 +182,10 @@ class Games(commands.Cog):
         except asyncio.TimeoutError:
             error = discord.Embed(title = "Uh oh!", description = "Looks like the request expired!", colour = discord.Colour.red())
             await msg.edit(content = None, embed = error)
-            await msg.clear_reactions()
+            try:
+                await msg.clear_reactions()
+            except discord.errors.HTTPException:
+                pass
         else:
             if str(reaction.emoji) == "✅":
                 await msg.delete()
@@ -115,16 +198,17 @@ class Games(commands.Cog):
                 board_string = stringify(board)
 
                 player = opponent
+                xoro = "⭕" if player == opponent else "❌"
 
                 board_embed = discord.Embed(title = "Tictactoe", description = f"{board_string}", colour = discord.Color.green())
-                board_embed.add_field(name = "Player:", value = f"{player.mention}")
+                board_embed.add_field(name = "Player:", value = f"{player.mention}: {xoro}")
                 board_message = await ctx.send(embed = board_embed)
 
                 for reaction in reactions:
                     await board_message.add_reaction(reaction)
                 
                 def numcheck(reaction, user):
-                    return (user == player) and (str(reaction.emoji) in ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣"])
+                    return (user == player) and (str(reaction.emoji) in ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣"]) and (reaction.message == board_message)
 
                 while True:
                     while True:
@@ -133,8 +217,11 @@ class Games(commands.Cog):
                         except asyncio.TimeoutError:
                             error = discord.Embed(title = "Uh oh!", description = f"{player.mention} didn't play in time!", colour = discord.Colour.red())
                             await board_message.edit(content = None, embed = error)
-                            return await board_message.clear_reactions()
-                        
+                            try:
+                                return await board_message.clear_reactions()
+                            except discord.errors.HTTPException:
+                                return
+                            
                         for key, time in enumerate(expected, start = 1):
                             if str(number.emoji) == expected[key]:
                                 place = time
@@ -143,35 +230,84 @@ class Games(commands.Cog):
                             await ctx.send("That place has already been taken!")
                         else:
                             board[str(place)] = "⭕" if player == opponent else "❌"
-                            await number.message.clear_reaction(number.emoji)
-                            break
+                            try:
+                                await number.message.clear_reaction(number.emoji)
+                            except discord.errors.HTTPException:
+                                break
+                            else:
+                                break
                     
                     if checkWin(board):
                         win_embed = discord.Embed(title = "🎉 Winner! 🎉", description = f"Congrats! {player.mention} won!", colour = discord.Colour.gold())
                         await board_message.edit(embed = win_embed)
-                        return await board_message.clear_reactions()
-                    
+                        try:
+                            return await board_message.clear_reactions()
+                        except discord.errors.HTTPException:
+                            return
+                        
                     if checkDraw(board):
                         draw_embed = discord.Embed(title = "Draw!", description = f"It's a draw!", colour = discord.Colour.blurple())
                         await board_message.edit(embed = draw_embed)
-                        return await board_message.clear_reactions()
+                        try:
+                            return await board_message.clear_reactions()
+                        except discord.errors.HTTPException:
+                            return
                         
                     else:
                         player = opponent if player == ctx.author else ctx.author
+                        xoro = "⭕" if player == opponent else "❌"
 
                         board_embed = discord.Embed(title = "Tictactoe", description = f"{stringify(board)}", colour = (discord.Colour.green() if player == ctx.author else discord.Colour.red()))
-                        board_embed.add_field(name = "Player:", value = f"{player.mention}")
+                        board_embed.add_field(name = "Player:", value = f"{player.mention}: {xoro}")
                         await board_message.edit(embed = board_embed)
                         
             
             elif str(reaction.emoji) == "❎":
                 error = discord.Embed(title = "Uh oh!", description = f"Looks like {opponent.mention} didn't want to play!", colour = discord.Colour.red())
                 await msg.edit(content = None, embed = error)
-                await msg.clear_reactions()
+                try:
+                    await msg.clear_reactions()
+                except discord.errors.HTTPException:
+                    pass
             
             else:
                 pass
-
+    
+    @commands.command(name = "hangman", aliases = ["hm"])
+    async def _hangman(self, ctx):
+        '''
+        Hangman
+        '''
+        won = False
+        
+        word = RandomWords().random_word()
+        
+        word_len = len(word)
+        
+        string = ""
+        
+        for i in word:
+            if i != " ":
+                string += "_ "
+            elif i == " ":
+                string += "/"
+                
+        string = string[:-1]
+        
+        incorrect = []
+        
+        game_embed = discord.Embed(title = "Hangman", description = hangman[0], colour = discord.Colour.blurple())
+        game_embed.add_field(name = "Word", value = f"`{string}`", inline = False)
+        game_embed.add_field(name = "Incorrect", value = makestring(incorrect))
+        game_message = await ctx.send(embed = game_embed)
+        
+        while not won:
+            def check(m):
+                return (m.author == ctx.author) and (m.channel == ctx.channel) and (len(m.content) == 1)
+             
+            try:
+                message = self.bot.wait_for("message", check = check, timeout = 60)
+        
 def setup(bot):
     '''
     Adds the cog

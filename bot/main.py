@@ -36,6 +36,7 @@ class Elli0t(discord.ext.commands.AutoShardedBot):
 intents = discord.Intents.default()
 intents.voice_states = True
 intents.members = True
+intents.guilds = True
 
 bot = Elli0t(command_prefix=get_prefix, description=description,
              help_command=pretty_help.PrettyHelp(), intents = intents, case_insensitive = True, activity = discord.Game(name="around while testing"))

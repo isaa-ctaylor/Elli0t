@@ -37,5 +37,12 @@ class Links(commands.Cog):
         support_embed.set_thumbnail(url = self.bot.user.avatar_url)
         await ctx.send(embed = support_embed)
         
+    @commands.command(name = "invite")
+    async def _invite(self, ctx):
+        '''Invite the bot to your server!'''
+        embed = discord.Embed(
+            title="Invite me!", description="Click [here](https://discord.com/api/oauth2/authorize?client_id=778637164388810762&permissions=8&scope=bot) to add me to your server!")
+        await ctx.send(embed=embed)
+        
 def setup(bot):
     bot.add_cog(Links(bot))
