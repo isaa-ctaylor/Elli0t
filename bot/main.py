@@ -3,6 +3,7 @@ import json
 import os
 import random
 
+import aiohttp
 import discord
 import pretty_help
 from discord.ext import commands
@@ -29,6 +30,7 @@ class Elli0t(discord.ext.commands.AutoShardedBot):
         '''
         Subclass of close, to confirm shutdown
         '''
+        await self.session.close()
         await self.change_presence(status = discord.Status.offline, activity=None)
         await super().close()
 
@@ -48,6 +50,7 @@ for cog in initial_cogs:
         print(e)
 
 bot.start_time = datetime.datetime.utcnow()
+bot.session = aiohttp.ClientSession()
 
 @bot.event
 async def on_ready():

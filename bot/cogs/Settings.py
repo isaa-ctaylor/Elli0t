@@ -2,6 +2,9 @@ import discord
 from discord.ext import commands
 import json
 
+import os
+dirname = os.path.dirname(__file__)
+filename = os.path.join(dirname, "../json/data.json")
 
 class Settings(commands.Cog):
     '''Settings for your guild'''
