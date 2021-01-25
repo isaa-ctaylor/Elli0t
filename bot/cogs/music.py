@@ -1,9 +1,3 @@
-'''
-youtube-dl = "^2020.7.28"
-async-timeout = "^3.0.1"
-PyNaCl = "^1.4.0"
-'''
-
 
 import asyncio
 import functools
@@ -152,8 +146,7 @@ class Song:
                  .add_field(name='Duration', value=self.source.duration)
                  .add_field(name='Requested by', value=self.requester.mention)
                  .add_field(name='Uploader', value='[{0.source.uploader}]({0.source.uploader_url})'.format(self))
-                 .add_field(name='URL', value='[Click]({0.source.url})'.format(self))
-                 .set_thumbnail(url=self.source.thumbnail))
+                 .add_field(name='URL', value='[Click]({0.source.url})'.format(self)))
 
         return embed
 
@@ -289,7 +282,6 @@ class Music(commands.Cog):
 
     @commands.command(name='join', invoke_without_subcommand=True)
     async def _join(self, ctx: commands.Context):
-        """Joins a voice channel."""
 
         destination = ctx.author.voice.channel
         if ctx.voice_state.voice:
@@ -297,15 +289,14 @@ class Music(commands.Cog):
             return
 
         ctx.voice_state.voice = await destination.connect()
-
+        embed = discord.Embed(
+            title='Connected to Music',
+            color = 0xff0000
+        )
+        await ctx.send(embed=embed)
     @commands.command(name='summon')
     @commands.has_permissions(manage_guild=True)
     async def _summon(self, ctx: commands.Context, *, channel: discord.VoiceChannel = None):
-        """Summons the bot to a voice channel.
-
-        If no channel was specified, it joins your channel.
-        """
-
         if not channel and not ctx.author.voice:
             raise VoiceError('You are neither connected to a voice channel nor specified a channel to join.')
 
@@ -315,28 +306,36 @@ class Music(commands.Cog):
             return
 
         ctx.voice_state.voice = await destination.connect()
+        embed = discord.Embed(
+            title='Summoned ',
+            color = 0xff0000
+        )
+        await ctx.send(embed=embed)
+        
 
     @commands.command(name='leave', aliases=['disconnect'])
     @commands.has_permissions(manage_guild=True)
     async def _leave(self, ctx: commands.Context):
-        """Clears the queue and leaves the voice channel."""
 
         if not ctx.voice_state.voice:
             return await ctx.send('Not connected to any voice channel.')
 
         await ctx.voice_state.stop()
         del self.voice_states[ctx.guild.id]
+        embed = discord.Embed(
+            title='Disconnected to Music ',
+            color = 0xff0000
+        )
+        await ctx.send(embed=embed)
 
     @commands.command(name='now', aliases=['current', 'playing'])
     async def _now(self, ctx: commands.Context):
-        """Displays the currently playing song."""
 
         await ctx.send(embed=ctx.voice_state.current.create_embed())
 
     @commands.command(name='pause')
     @commands.has_permissions(manage_guild=True)
     async def _pause(self, ctx: commands.Context):
-        """Pauses the currently playing song."""
 
         if ctx.voice_state.is_playing and ctx.voice_state.voice.is_playing():
             ctx.voice_state.voice.pause()
@@ -345,7 +344,6 @@ class Music(commands.Cog):
     @commands.command(name='resume')
     @commands.has_permissions(manage_guild=True)
     async def _resume(self, ctx: commands.Context):
-        """Resumes a currently paused song."""
 
         if ctx.voice_state.is_playing and ctx.voice_state.voice.is_paused():
             ctx.voice_state.voice.resume()
@@ -354,7 +352,6 @@ class Music(commands.Cog):
     @commands.command(name='stop')
     @commands.has_permissions(manage_guild=True)
     async def _stop(self, ctx: commands.Context):
-        """Stops playing song and clears the queue."""
 
         ctx.voice_state.songs.clear()
 
@@ -408,7 +405,6 @@ class Music(commands.Cog):
 
     @commands.command(name='shuffle')
     async def _shuffle(self, ctx: commands.Context):
-        """Shuffles the queue."""
 
         if len(ctx.voice_state.songs) == 0:
             return await ctx.send('Empty queue.')
@@ -418,7 +414,6 @@ class Music(commands.Cog):
 
     @commands.command(name='remove')
     async def _remove(self, ctx: commands.Context, index: int):
-        """Removes a song from the queue at a given index."""
 
         if len(ctx.voice_state.songs) == 0:
             return await ctx.send('Empty queue.')
@@ -426,8 +421,10 @@ class Music(commands.Cog):
         ctx.voice_state.songs.remove(index - 1)
         await ctx.message.add_reaction('✅')
 
+
     @commands.command(name='play')
     async def _play(self, ctx: commands.Context, *, search: str):
+
         if not ctx.voice_state.voice:
             await ctx.invoke(self._join)
 
@@ -435,7 +432,7 @@ class Music(commands.Cog):
             try:
                 source = await YTDLSource.create_source(ctx, search, loop=self.bot.loop)
             except YTDLError as e:
-                await ctx.send('An error occurred while processing this request: {}'.format(str(e)))
+                await ctx.send('**An error occured **: {}'.format(str(e)))
             else:
                 song = Song(source)
 
@@ -454,5 +451,4 @@ class Music(commands.Cog):
 
 def setup(bot):
     bot.add_cog(Music(bot))
-
 
