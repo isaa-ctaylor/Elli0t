@@ -1,12 +1,19 @@
 import discord
-import aiohttp
+import async_cleverbot as ac
 import asyncio
+import aiohttp
 from discord.ext import commands
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 class Chatbot(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.chatting = []
+        
+        self.chatbot = ac.Cleverbot(os.getenv("CLEVERBOT"), context = ac.DictContext())
 
     def is_chatting(self, author):
         if author in self.chatting:
@@ -33,12 +40,9 @@ class Chatbot(commands.Cog):
             
             self.chatting.append(ctx.author)
             
-            payload = {"text": text, "context": context}
-            
-            async with ctx.channel.typing(), self.bot.session.post("https://public-api.travitia.xyz/talk", json=payload, headers={"authorization": "bpKwHiH'!G$:#;K*<!MO"}) as req:
-                response = (await req.json())["response"]
+            response = await self.chatbot.ask(text, ctx.author.id)
 
-            await ctx.reply(response, mention_author = False)
+            await ctx.reply(response.text, mention_author = False)
             
             message = False
             
@@ -60,16 +64,12 @@ class Chatbot(commands.Cog):
                     
                     for i in ["bye", "cancel", "i'm going"]:
                         if i in text.lower():
+                            self.chatting.pop(self.chatting.index(ctx.author))
                             return await message.reply("Bye!", mention_author = False)
 
-                    payload = {"text": text, "context": context}
+                    response = await self.chatbot.ask(text, ctx.author.id)
 
-                    async with ctx.channel.typing(), self.bot.session.post("https://public-api.travitia.xyz/talk", json=payload, headers={"authorization": "bpKwHiH'!G$:#;K*<!MO"}) as req:
-                        response = (await req.json())["response"]
-                    
-                    await message.reply(response, mention_author = False)
-                    
-                    context = [text, response]
+                    await message.reply(response.text, mention_author = False)
 
 def setup(bot):
     '''
