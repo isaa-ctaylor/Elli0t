@@ -3,17 +3,57 @@ import asyncio
 import functools
 import itertools
 import math
-import random
 import os
+import random
+import traceback
 
 import discord
+import ffmpeg
 import youtube_dl
 from async_timeout import timeout
 from discord.ext import commands
+from lyricsgenius import Genius
 
+load_dotenv()
+
+spotify = spotipy.Spotify(client_credentials_manager = spotipy.oauth2.SpotifyClientCredentials(client_id = os.getenv("SP_ID"), client_secret = os.getenv("SP_SE")))
+
+genius = Genius(os.getenv("GENIUS"))
 # Silence useless bug reports messages
 youtube_dl.utils.bug_reports_message = lambda: ''
 
+async def get_lyrics(ctx, song):
+    await ctx.send(f"Searching for {song}...")
+    
+    async with ctx.channel.typing():
+        lyrics = genius.search_song(song).lyrics
+
+        paginatedLyrics = lyrics.split("\n\n")
+
+            embed_list = []
+            linesInVerse = []
+
+            for verse in range(len(paginatedLyrics)):
+                linesInVerse = []
+                for line in range(len(paginatedLyrics[verse].split("\n"))):
+                    if line != 0:
+                        linesInVerse.append(
+                            paginatedLyrics[verse].split("\n")[line])
+
+                lines = "\n".join(linesInVerse)
+
+                embed_list.append(discord.Embed(title=paginatedLyrics[verse].split(
+                    "\n")[0], description=f"```\n{lines}```", colour=ctx.author.colour))
+
+            paginator = DiscordUtils.Pagination.CustomEmbedPaginator(
+                ctx, remove_reactions=True, auto_footer=True)
+            paginator.add_reaction('⏮️', "first")
+            paginator.add_reaction('⏪', "back")
+            paginator.add_reaction('❌', "delete")
+            paginator.add_reaction('⏩', "next")
+            paginator.add_reaction('⏭️', "last")
+            embeds = embed_list
+            await paginator.run(embeds)
 
 class VoiceError(Exception):
     pass
@@ -277,8 +317,8 @@ class Music(commands.Cog):
     async def cog_before_invoke(self, ctx: commands.Context):
         ctx.voice_state = self.get_voice_state(ctx)
 
-    async def cog_command_error(self, ctx: commands.Context, error: commands.CommandError):
-        await ctx.send('An error occurred: {}'.format(str(error)))
+    # async def cog_command_error(self, ctx: commands.Context, error: commands.CommandError):
+    #     await ctx.send('An error occurred: {}'.format(str(error)))
 
     @commands.command(name='join', invoke_without_subcommand=True)
     async def _join(self, ctx: commands.Context):
@@ -323,7 +363,7 @@ class Music(commands.Cog):
         await ctx.voice_state.stop()
         del self.voice_states[ctx.guild.id]
         embed = discord.Embed(
-            title='Disconnected to Music ',
+            title='Disconnected from voice channel',
             color = 0xff0000
         )
         await ctx.send(embed=embed)
@@ -432,7 +472,7 @@ class Music(commands.Cog):
             try:
                 source = await YTDLSource.create_source(ctx, search, loop=self.bot.loop)
             except YTDLError as e:
-                await ctx.send('**An error occured **: {}'.format(str(e)))
+                await ctx.send("".join(traceback.format_exception(type(error), error, error.__traceback__)))
             else:
                 song = Song(source)
 
@@ -448,6 +488,13 @@ class Music(commands.Cog):
         if ctx.voice_client:
             if ctx.voice_client.channel != ctx.author.voice.channel:
                 raise commands.CommandError('Bot is already in a voice channel.')
+            
+    @commands.command(name="lyrics", aliases=["l"])
+    async def _lyrics(self, ctx, *, song = None):
+        if song:
+            await get_lyrics(ctx, song)
+        else:
+            await get_lyrics(ctx, )
 
 def setup(bot):
     bot.add_cog(Music(bot))

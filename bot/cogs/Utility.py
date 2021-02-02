@@ -1,15 +1,9 @@
 import discord
 from discord.ext import commands
-import asyncio
-import json
-from utils.global_functions import get_default_prefix, timeInSeconds
-import random
-import datetime
-import translate
-import langdetect
-import html
+import PIL
+import qrcode
+import io
 
-default_prefix = get_default_prefix()
 
 class Utility(commands.Cog):
     '''All the commands in here are like your utility belt!'''
@@ -30,6 +24,12 @@ class Utility(commands.Cog):
             title = title, description=f"Latency = `{round(self.bot.latency * 1000, 2)}ms`", colour = random.randint(0x000000, 0xFFFFFF))
 
         await ctx.send(embed=embed)
+        
+    # @commands.command(name="qr", aliases=["qr_code", "qrcode", "qr-code"])
+    # async def qr(self, ctx, *, message):
+    #     img = qrcode.make(message)
+    #     file = discord.File(img.getvalue())
+    #     await ctx.send(file=file)
     
 def setup(bot):
     bot.add_cog(Utility(bot))

@@ -1,12 +1,15 @@
-import discord
+import asyncio
 import json
+import os
+
+import discord
 from discord.ext import commands
 from utils.global_functions import get_cogs
-import asyncio
 
+dirname = os.path.dirname(__file__)
+filename = os.path.join(dirname, "../json/data.json")
 
 initial_cogs = get_cogs()
-
 
 class Owner(commands.Cog):
     '''Commands just for the owner of the bot'''
@@ -17,16 +20,8 @@ class Owner(commands.Cog):
     @commands.command(hidden = True, name = "defaultprefix")
     @commands.is_owner()
     async def _defaultprefix(self, ctx, prefix):
-        '''Changes the default prefix, can only be used by the bot owner
-
-        Usage
-        -----
-        defaultprefix <prefix>
-
-        Parameters
-        ----------
-        prefix: str
-            The prefix to change to
+        '''
+        Changes the default prefix, can only be used by the bot owner
         '''
 
         with open('prefixes.json', 'r') as f:

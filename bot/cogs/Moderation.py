@@ -1,12 +1,11 @@
 import json
-
+import os
 
 import discord
+import psycopg2
 from discord.ext import commands
-
 from utils.global_functions import get_prefix
 
-import os
 dirname = os.path.dirname(__file__)
 filename = os.path.join(dirname, "../json/data.json")
 
@@ -93,12 +92,12 @@ class Moderation(commands.Cog):
 
     @commands.command(name = "unban", aliases = ["unbanish"])
     @commands.has_guild_permissions(ban_members = True)
-    async def _unban(self, ctx, member: discord.Object):
+    async def _unban(self, ctx, member: discord.Object, *, reason = "None"):
         '''
         Unbans the given user
         '''
         try:
-            await ctx.guild.unban(member)
+            await ctx.guild.unban(member, reason = reason)
             unbanned_embed = discord.Embed(title = "Success!", description = f"Successfully unbanned {member.mention}", colour = discord.Colour.green())
             return await ctx.reply(embed = unbanned_embed)
 
@@ -108,7 +107,7 @@ class Moderation(commands.Cog):
 
     @commands.command(name = "mute", aliases = ["shush"])
     @commands.has_guild_permissions(mute_members = True)
-    async def _mute(self, ctx, member: discord.Member, *, reason):
+    async def _mute(self, ctx, member: discord.Member, *, reason = "None"):
         '''
         Mutes the given user
         '''
@@ -133,13 +132,13 @@ class Moderation(commands.Cog):
 
     @commands.command(name = "unmute", aliases = ["unshush"])
     @commands.has_guild_permissions(mute_members = True)
-    async def _unmute(self, ctx, member: discord.Member):
+    async def _unmute(self, ctx, member: discord.Member, *, reason = "None"):
         '''
         Unmutes the given user
         '''
         try:
             if (role := discord.utils.get(ctx.guild.roles, name = "Muted")) in member.roles:
-                await member.remove_roles(role)
+                await member.remove_roles(role, reason = reason)
                 success_embed = discord.Embed(title = "Success!", description = f"Successfully unmuted {member.mention}", colour = discord.Colour.green())
                 await ctx.reply(embed = success_embed)
             else:
@@ -154,21 +153,21 @@ class Moderation(commands.Cog):
 
     @commands.command(name = "block")
     @commands.has_guild_permissions(manage_messages = True)
-    async def _block(self, ctx, member: discord.Member):
+    async def _block(self, ctx, member: discord.Member, *, reason = "None"):
         '''
         Block the given member from speaking in the current channel
         '''
-        await ctx.channel.set_permissions(member, send_messages = False)
+        await ctx.channel.set_permissions(member, send_messages = False, reason = reason)
         success_embed = discord.Embed(title = "Success!", description = f"Blocked {member.mention} from speaking in this channel", colour = discord.Colour.green())
         await ctx.reply(embed = success_embed)            
     
     @commands.command(name = "unblock")
     @commands.has_guild_permissions(manage_messages = True)
-    async def _unblock(self, ctx, member: discord.Member):
+    async def _unblock(self, ctx, member: discord.Member, *, reason = "None"):
         '''
         Unblock the given member so they can speak in the current channel
         '''
-        await ctx.channel.set_permissions(member, send_messages = True)
+        await ctx.channel.set_permissions(member, send_messages = True, reason = reason)
         success_embed = discord.Embed(title = "Success!", description = f"Unblocked {member.mention}", colour = discord.Colour.green())
         await ctx.reply(embed = success_embed)  
         

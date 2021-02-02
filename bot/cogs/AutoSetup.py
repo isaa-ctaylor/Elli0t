@@ -24,7 +24,7 @@ class AutoSetup(commands.Cog):
             
         data["servers"][str(guild.id)] = {
             "name": str(guild.name),
-            "prefix": "&",
+            "prefix": "-",
             "filter": {
                 "enabled": false,
                 "mode": 1,

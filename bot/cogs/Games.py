@@ -1,5 +1,6 @@
 import asyncio
 from random_words import RandomWords
+import numpy
 
 import discord
 from discord.ext import commands
@@ -284,15 +285,13 @@ class Games(commands.Cog):
         
         word_len = len(word)
         
-        string = ""
+        string = []
         
         for i in word:
             if i != " ":
-                string += "_ "
+                string.append("_")
             elif i == " ":
-                string += "/"
-                
-        string = string[:-1]
+                string.append("/")
         
         incorrect = []
         
@@ -307,9 +306,22 @@ class Games(commands.Cog):
              
             try:
                 message = self.bot.wait_for("message", check = check, timeout = 60)
-        
+            except asyncio.TimeoutError:
+                error_embed = discord.Embed(title = "Uh oh!", description = "You didn't play in time!", colour = discord.Colour.red())
+                return await game_message.edit(embed = error_embed)
+            else:
+                if message.content.lower() not in [chr(i) for i in range(92, 122)]:
+                    await ctx.send("That's not a letter!", delete_after = 2)
+                else:
+                    if message.content.lower() in string:
+                        values = numpy.array(string)
+                        searchval = message.content.lower()
+                        ii = numpy.where(values == searchval)[0]
+                        ii = ii.to
+                    
+
 def setup(bot):
-    '''
+    ''' 
     Adds the cog
     '''
     bot.add_cog(Games(bot))
