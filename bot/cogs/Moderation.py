@@ -4,7 +4,6 @@ import os
 import discord
 import psycopg2
 from discord.ext import commands
-from utils.global_functions import get_prefix
 
 dirname = os.path.dirname(__file__)
 filename = os.path.join(dirname, "../json/data.json")

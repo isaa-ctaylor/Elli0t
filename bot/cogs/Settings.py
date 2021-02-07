@@ -1,6 +1,7 @@
 import discord
 from discord.ext import commands
 import json
+from utils.utils import updatePrefixes
 
 import os
 dirname = os.path.dirname(__file__)
@@ -17,6 +18,8 @@ class Settings(commands.Cog):
         '''
         Settings for your guild
         '''
+        if not ctx.invoked_subcommand:
+            await ctx.send_help(self.bot.get_command("settings"))
 
     @_settings.group(name = "filter")
     @commands.has_guild_permissions(manage_messages = True)
@@ -179,6 +182,7 @@ class Settings(commands.Cog):
             data = json.load(f)
             
         data["servers"][str(ctx.guild.id)]["prefix"] = str(prefix)
+        self.bot = await updatePrefixes(self.bot)
         
         with open(filename, "w") as f:
             json.dump(data, f, indent = 4)

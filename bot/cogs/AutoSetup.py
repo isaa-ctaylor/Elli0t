@@ -66,6 +66,10 @@ class AutoSetup(commands.Cog):
         
             with open("./json/data.json", "w") as f:
                 json.dump(data, f, indent = 4)
+                
+    @commands.Cog.listener(name="on_message_edit")
+    async def _reinvoke_commands(self, before, after):
+        await self.bot.process_commands(after)
 
 
 def setup(bot):

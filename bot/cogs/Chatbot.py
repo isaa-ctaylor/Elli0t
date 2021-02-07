@@ -9,6 +9,10 @@ from dotenv import load_dotenv
 load_dotenv()
 
 class Chatbot(commands.Cog):
+    '''
+    Well... chat bot
+    '''
+    
     def __init__(self, bot):
         self.bot = bot
         self.chatting = []

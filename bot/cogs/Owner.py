@@ -4,151 +4,135 @@ import os
 
 import discord
 from discord.ext import commands
-from utils.global_functions import get_cogs
 
 dirname = os.path.dirname(__file__)
 filename = os.path.join(dirname, "../json/data.json")
 
-initial_cogs = get_cogs()
 
 class Owner(commands.Cog):
     '''Commands just for the owner of the bot'''
+
     def __init__(self, bot):
-        self.bot=bot
+        self.bot = bot
+        self.cogs = bot.loaded_cogs
+        self.whitelist = [
+            "jishaku"
+        ]
 
+    async def cog_check(self, ctx):
+        return await self.bot.is_owner(ctx.author)
 
-    @commands.command(hidden = True, name = "defaultprefix")
-    @commands.is_owner()
-    async def _defaultprefix(self, ctx, prefix):
-        '''
-        Changes the default prefix, can only be used by the bot owner
-        '''
+    async def load_cog(self, bot, cog) -> discord.Embed:
+        try:
+            bot.load_extension(cog)
+            embed = discord.Embed(
+                title="Success!", description=f"Loaded `{cog}`", colour=discord.Colour.green())
+        except Exception as e:
+            embed = discord.Embed(
+                title="Error!", description=f"Error loading `{cog}`: `{e}`", colour=discord.Colour.red())
+        finally:
+            return embed
 
-        with open('prefixes.json', 'r') as f:
-            prefixes = json.load(f)
-
-        prefixes["default"] = str(prefix)
-
-        with open('prefixes.json', 'w') as f:
-            json.dump(prefixes, f, indent=4)
-
-        await ctx.send(f"Default prefix changed to `{prefix}")
-
-    @commands.command(hidden = True, name = "reload")
-    @commands.is_owner()
-    async def _reload(self, ctx, cog = None):
-        if not cog:
-            for cogs in initial_cogs:
-                try:
-                    self.bot.reload_extension(cogs)
-                    await ctx.send(f'Reloaded `{cogs}`', delete_after = 10)
-                except Exception as e:
-                    await ctx.send(f"Error while reloading `{cogs}`: `{e}`")
-                await asyncio.sleep(0.5)
-            await ctx.send("✅ Successfully reloaded!", delete_after = 10)
-        else:
-            if cog == "jishaku":
-                self.bot.load_extension(cog)
-                return await ctx.send(f"Loaded `{cog}`", delete_after = 10)
-
-            if not cog.startswith("cogs."):
-                cog = f"cogs.{cog}"
-            try:
-                self.bot.reload_extension(cog)
-                await ctx.send(f"Reloaded `{cog}`", delete_after = 10)
-            except Exception as e:
-                await ctx.send(f"Error while reloading `{cog}`: `{e}`")
-
-    @commands.command(hidden = True, name = "load")
-    @commands.is_owner()
-    async def _load(self, ctx, cog = None):
-        if not cog:
-            for cogs in initial_cogs:
-                try:
-                    self.bot.load_extension(cogs)
-                    await ctx.send(f'Loaded `{cogs}`', delete_after = 10)
-                except Exception as e:
-                    await ctx.send(f"Error while loading `{cogs}`: `{e}`")
-                await asyncio.sleep(0.5)
-            await ctx.send("✅ Successfully loaded!", delete_after = 10)
-        else:
-            if cog == "jishaku":
-                self.bot.load_extension(cog)
-                return await ctx.send(f"Loaded `{cog}`", delete_after = 10)
-            if not cog.startswith("cogs."):
-                cog = f"cogs.{cog}"
-            try:
-                self.bot.load_extension(cog)
-                await ctx.send(f"Loaded `{cog}`", delete_after = 10)
-            except Exception as e:
-                await ctx.send(f"Error while loading `{cog}`: `{e}`")
-
-    @commands.command(hidden = True, name = "unload")
-    @commands.is_owner()
-    async def _unload(self, ctx, cog = None):
-        if not cog:
-            for cogs in initial_cogs:
-                try:
-                    self.bot.unload_extension(cogs)
-                    await ctx.send(f'Unloaded `{cogs}`', delete_after = 10)
-                except Exception as e:
-                    await ctx.send(f"Error while Unloading `{cogs}`: `{e}`")
-                await asyncio.sleep(0.5)
-            await ctx.send("✅ Successfully Unloaded!", delete_after = 10)
-        else:
-            if cog == "jishaku":
-                self.bot.load_extension(cog)
-                return await ctx.send(f"Unloaded `{cog}`", delete_after = 10)
-
-            if not cog.startswith("cogs."):
-                cog = f"cogs.{cog}"
-            try:
-                self.bot.unload_extension(cog)
-                await ctx.send(f"Unloaded `{cog}`", delete_after = 10)
-            except Exception as e:
-                await ctx.send(f"Error while unloading `{cog}`: `{e}`")
-
-    @commands.command(hidden = True, name = "status")
-    @commands.is_owner()
-    async def _status(self, ctx, status_type, *, message):
-        if status_type == "playing":
-            activity = discord.Game(message)
-        elif status_type == "listening":
-            activity = discord.Activity(type=discord.ActivityType.listening, name=message)
-        elif status_type == "watching":
-            activity = discord.Activity(type=discord.ActivityType.watching, name=message)
+    async def reload_cog(self, bot, cog) -> discord.Embed:
+        try:
+            bot.reload_extension(cog)
+            embed = discord.Embed(
+                title="Success!", description=f"Reloaded `{cog}`", colour=discord.Colour.green())
+        except Exception as e:
+            embed = discord.Embed(
+                title="Error!", description=f"Error reloading `{cog}`: `{e}`", colour=discord.Colour.red())
+        finally:
+            return embed
         
-        await self.bot.change_presence(status=discord.Status.online, activity=activity)
-        await ctx.message.add_reaction("👍")
+    async def unload_cog(self, bot, cog) -> discord.Embed:
+        try:
+            bot.unload_extension(cog)
+            embed = discord.Embed(
+                title="Success!", description=f"Unloaded `{cog}`", colour=discord.Colour.green())
+        except Exception as e:
+            embed = discord.Embed(
+                title="Error!", description=f"Error unloading `{cog}`: `{e}`", colour=discord.Colour.red())
+        finally:
+            return embed
 
-    @commands.command(name = "addcog")
-    @commands.is_owner()
-    async def _addcog(self, ctx, cog):
-        with open("cogs.json", "r") as f:
-            cogs = json.load(f)
-
-        if cog.startswith("cogs."):
-            if not cog in cogs:
-                cogs.append(cog)
-            else:
-                await ctx.send("Cog has already been added!")
-                await ctx.send(f"Added `{cog}`")
-
-                await ctx.invoke(self.bot.get_command("load"), cog = cog)
+    @commands.command(name="load")
+    async def _load(self, ctx, *, cog):
+        '''
+        Load the given cog
+        '''
+        if cog in self.whitelist:
+            await ctx.send(embed=await self.load_cog(self.bot, cog))
+            if not cog in self.bot.loaded_cogs:
+                self.bot.loaded_cogs.append(cog)
+        elif cog.startswith("cogs."):
+            await ctx.send(embed=await self.load_cog(self.bot, cog))
+            if not cog in self.bot.loaded_cogs:
+                self.bot.loaded_cogs.append(cog)
         else:
-            if not f"cogs.{cog}" in cogs:
-                cogs.append(f"cogs.{cog}")
-                await ctx.send(f"Added `{cog}`")
+            await ctx.send(embed=await self.load_cog(self.bot, f"cogs.{cog}"))
+            if not cog in self.bot.loaded_cogs:
+                self.bot.loaded_cogs.append(f"cogs.{cog}")
 
-                await ctx.invoke(self.bot.get_command("load"), cog = cog)
+    @commands.command(name="reload")
+    async def _reload(self, ctx, *, cog=None):
+        '''
+        Reload the given cog
+        '''
+        if cog:
+            if cog in self.whitelist:
+                await ctx.send(embed=await self.reload_cog(self.bot, cog))
+            elif cog.startswith("cogs."):
+                await ctx.send(embed=await self.reload_cog(self.bot, cog))
             else:
-                await ctx.send("Cog has already been added!")
+                await ctx.send(embed=await self.reload_cog(self.bot, f"cogs.{cog}"))
+        else:
+            cogs = []
+            good = 0
+            bad = 0
+            
+            for i, cog in enumerate(self.bot.loaded_cogs):
+                try:
+                    self.bot.reload_extension(cog)
+                    cogs.append(f"<:greenTick:596576670815879169> `{cog}`")
+                    good += 1
+                except Exception as e:
+                    cogs.append(
+                        f"<:redTick:596576672149667840> `{cog}`: `{e}`")
+                    bad += 1
 
-        cogs.sort()
-        
-        with open("cogs.json", "w") as f:
-            json.dump(cogs, f, indent = 4)
+            if good >= bad:
+                colour = discord.Colour.green()
+            else:
+                colour = discord.Colour.red()
 
+            cogs = "\n".join(cogs)
 
+            embed = discord.Embed(title="Reloaded all cogs",
+                                  description=cogs, colour=colour)
+            await ctx.send(embed=embed)
+            
+    @commands.command(name="unload")
+    async def _unload(self, ctx, *, cog):
+        if cog in self.whitelist:
+            await ctx.send(embed=await self.unload_cog(self.bot, cog))
+            if cog in self.bot.loaded_cogs:
+                self.bot.loaded_cogs.pop(self.bot.loaded_cogs.index(cog))
+        elif cog.startswith("cogs."):
+            await ctx.send(embed=await self.unload_cog(self.bot, cog))
+            if cog in self.bot.loaded_cogs:
+                self.bot.loaded_cogs.pop(self.bot.loaded_cogs.index(cog))
+        else:
+            await ctx.send(embed=await self.unload_cog(self.bot, f"cogs.{cog}"))
+            if cog in self.bot.loaded_cogs:
+                self.bot.loaded_cogs.pop(self.bot.loaded_cogs.index(f"cogs.{cog}"))
+
+    @_load.error
+    @_reload.error
+    @_unload.error
+    async def _NotOwner(self, ctx, error):
+        if isinstance(error, discord.ext.commands.errors.CheckFailure):
+            error_embed = discord.Embed(title="Error!", description="You need to be owner to use this command!", colour=discord.Colour.red())
+            await ctx.send(embed=error_embed)
+            
 def setup(bot):
     bot.add_cog(Owner(bot))

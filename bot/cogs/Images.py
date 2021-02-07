@@ -4,6 +4,7 @@ from asyncdagpi import Client, ImageFeatures
 import discord
 from discord.ext import commands
 from dotenv import load_dotenv
+import aiohttp
 
 load_dotenv()
 
@@ -16,6 +17,14 @@ class Images(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.dagpiclient = Client(os.getenv("ASYNCDAGPI"))
+
+    @commands.Cog.listener(name="cog_command_error")
+    async def _cog_error(self, ctx, error):
+        if isinstance(error, aiohttp.client_exceptions.ContentTypeError):
+            embed = discord.Embed(title="Error", description="There was an error, please try again later", colour=discord.Colour.red())
+            await ctx.send(embed=embed)
+        else:
+            raise
 
     @commands.command(name="avatar")
     async def _avatar(self, ctx, *, member: discord.Member = None):
@@ -223,7 +232,5 @@ class Images(commands.Cog):
             file = discord.File(fp=img.image, filename=f"ascii.{img.format}")
             await ctx.send(file=file)
     
-    
-
 def setup(bot):
     bot.add_cog(Images(bot))

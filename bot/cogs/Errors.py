@@ -71,17 +71,22 @@ class Errors(commands.Cog):
             await ctx.reply("I couldn't do that, sorry. Try checking my perms")
             
         elif isinstance(error, commands.errors.MissingRequiredArgument):
-            error_embed = discord.Embed(title = "Error!", description = f"Missing parameter: `{error.param}`", colour = discord.Colour.red())
+            param = str(error.param).split(":")[0]
+            error_embed = discord.Embed(title = "Error!", description = f"Missing parameter: `{param}`", colour = discord.Colour.red())
             await ctx.reply(embed = error_embed)
 
+        elif isinstance(error, commands.NotOwner):
+            embed = discord.Embed(title="Error!", description="You need to be owner to execute this command!", colour=discord.Colour.red())
+            await ctx.send(embed=embed)
+            
         else:
-            error_embed = discord.Embed(title = "Error!", description = f"Error type: {type(error)}\nError message: {str(error)}\nIf this keeps happening, please contact `isaa_ctaylor#2494`")
+            error_embed = discord.Embed(title = "Error!", description = f"Error type: {type(error)}\nError message: {str(error)}\nIf this keeps happening, please contact `isaa_ctaylor#2494`", colour=discord.Colour.red())
             await ctx.reply(embed = error_embed)
             
             tb = "".join(traceback.format_exception(type(error), error, error.__traceback__))
 
             try:
-                await self.bot.get_user(self.bot.owner_id).send(f"Error!\nAuthor: `{ctx.author.name}#{ctx.author.discriminator}`\nGuild: `{ctx.guild.name}`, `{ctx.guild.id}`\nCommand: {ctx.command}\nCog: {ctx.cog}\nTraceback:\n```py\n{tb}\n```")
+                await (await self.bot.fetch_user(self.bot.owner_id)).send(f"Error!\nAuthor: `{ctx.author.name}#{ctx.author.discriminator}`\nGuild: `{ctx.guild.name}`, `{ctx.guild.id}`\nCommand: {ctx.command}\nCog: {ctx.cog}\nTraceback:\n```py\n{tb}\n```")
             except:
                 print('Ignoring exception in command {}:'.format(ctx.command), file=sys.stderr)
                 traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
