@@ -49,8 +49,9 @@ async def get_lyrics(ctx, song):
 
             lines = "\n".join(linesInVerse)
 
-            embed_list.append(discord.Embed(title=paginatedLyrics[verse].split(
-                "\n")[0], description=f"```\n{lines}```", colour=ctx.author.colour))
+            title = paginatedLyrics[verse].split("\n")[0] if paginatedLyrics[verse].split("\n")[0].startswith("[") else None
+
+            embed_list.append(discord.Embed(title=title, description=f"```\n{lines}```", colour=ctx.author.colour))
 
         paginator = DiscordUtils.Pagination.CustomEmbedPaginator(
             ctx, remove_reactions=True, auto_footer=True)
@@ -150,7 +151,7 @@ class YTDLSource(discord.PCMVolumeTransformer):
         processed_info = await loop.run_in_executor(None, partial)
 
         if processed_info is None:
-            raise YTDLError(f'Couldn\'t fetch `{Webpage_url}`')
+            raise YTDLError(f'Couldn\'t fetch `{webpage_url}`')
 
         if 'entries' not in processed_info:
             info = processed_info
@@ -513,7 +514,7 @@ class Jukebox(commands.Cog):
             try:
                 source = await YTDLSource.create_source(ctx, search, loop=self.bot.loop)
             except YTDLError as e:
-                await ctx.send("".join(traceback.format_exception(type(error), error, error.__traceback__)))
+                await ctx.send("".join(traceback.format_exception(type(e), e, e.__traceback__)))
             else:
                 song = Song(source)
 
