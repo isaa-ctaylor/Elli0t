@@ -125,8 +125,13 @@ venv.bak/
 .dmypy.json
 dmypy.json
 
+# systemctl
+*.service
+
 #Extra stuff
 Archive/
 json/
 Elite.py
 Owner.py
+beta/
+Testing/
