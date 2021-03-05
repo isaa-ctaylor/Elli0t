@@ -1,7 +1,5 @@
-import discord
-import async_cleverbot as ac
+from async_cleverbot import Cleverbot, DictContext
 import asyncio
-import aiohttp
 from discord.ext import commands
 import os
 from dotenv import load_dotenv
@@ -17,7 +15,7 @@ class Chatbot(commands.Cog):
         self.bot = bot
         self.chatting = []
         
-        self.chatbot = ac.Cleverbot(os.getenv("CLEVERBOT"), context = ac.DictContext())
+        self.chatbot = Cleverbot(os.getenv("CLEVERBOT"), context = DictContext())
 
     def is_chatting(self, author):
         if author in self.chatting:
@@ -44,9 +42,10 @@ class Chatbot(commands.Cog):
             
             self.chatting.append(ctx.author)
             
-            response = await self.chatbot.ask(text, ctx.author.id)
+            async with ctx.typing():            
+                response = await self.chatbot.ask(text, ctx.author.id)
 
-            await ctx.reply(response.text, mention_author = False)
+                await ctx.reply(response.text, mention_author = False)
             
             message = False
             
@@ -71,9 +70,10 @@ class Chatbot(commands.Cog):
                             self.chatting.pop(self.chatting.index(ctx.author))
                             return await message.reply("Bye!", mention_author = False)
 
-                    response = await self.chatbot.ask(text, ctx.author.id)
+                    async with ctx.typing():
+                        response = await self.chatbot.ask(text, ctx.author.id)
 
-                    await message.reply(response.text, mention_author = False)
+                        await message.reply(response.text, mention_author = False)
 
 def setup(bot):
     '''
