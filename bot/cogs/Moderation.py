@@ -68,6 +68,7 @@ class Moderation(commands.Cog):
 
     @commands.command(name = "ban", aliases = ["banish"])
     @commands.has_guild_permissions(ban_members = True)
+    @commands.bot_has_guild_permissions(ban_members = True)
     async def _ban(self, ctx, member: discord.Member, *, reason = "None"):
         '''
         Bans the given user
