@@ -178,6 +178,7 @@ class paginator(object):
 
                 elif command == "delete":
                     await msg.delete()
+                    await self.ctx.message.add_reaction("\U00002705")
                     navigating = False
 
                 elif command == "next":
