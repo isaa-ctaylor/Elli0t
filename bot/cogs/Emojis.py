@@ -31,7 +31,7 @@ class Emojis(commands.Cog):
             if self.cache[int(message.author.id)] == True:
                 emojistosend = []
                 foundemojinames = re.findall(
-                    r"((?<=\.{2})[\w!@#£$%^&*()_+~\-=\[\]{};':\"\\|,.<>\/?0123456789]+?(?=\.{2}|$|\s))", str(message.content))
+                    r"((?<=\.).+?(?=\.|$|\s))", str(message.content))
 
                 if foundemojinames:
                     guildemojinames = {
@@ -107,7 +107,7 @@ class Emojis(commands.Cog):
                     await con.execute("INSERT INTO userdata values($1, $2) ON CONFLICT (user_id) DO UPDATE SET emojis = $2 where userdata.user_id = $1", int(ctx.author.id), not emojis[0]["emojis"])
                     mode = not emojis[0]["emojis"]
         await self.updatecache()
-        embed = discord.Embed(title="Success!", description=f"User emoji response `{'on' if mode else 'off'}`", colour=discord.Colour.green()).set_footer(text=f"You can trigger the emoji any time by doing \"..<emojiname>\"", icon_url=ctx.author.avatar_url)
+        embed = discord.Embed(title="Success!", description=f"User emoji response `{'on' if mode else 'off'}`", colour=discord.Colour.green()).set_footer(text=f"You can trigger the emoji any time by doing \".<emojiname>\"", icon_url=ctx.author.avatar_url)
         await ctx.send(embed=embed)
         
 def setup(bot):
