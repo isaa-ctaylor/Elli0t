@@ -7,7 +7,7 @@ import discord
 from discord.ext import commands
 from .logging import logger_setup
 import os
-from aiozaneapi import Client as zClient
+import zipfile
 
 class Elli0t(discord.ext.commands.AutoShardedBot):
     '''
@@ -21,7 +21,7 @@ class Elli0t(discord.ext.commands.AutoShardedBot):
         self.loaded_cogs = kwargs.pop("cogs")
         self.db = kwargs.pop("database")
         self.prefixless = False
-        self.zaneclient = zClient(os.getenv("AIOZANEAPI"))
+        self = logger_setup(self)
         
         self = self.loop.run_until_complete(self.db.updatePrefixes(self))
         
@@ -34,7 +34,11 @@ class Elli0t(discord.ext.commands.AutoShardedBot):
         '''
         Subclass of close, to confirm shutdown
         '''
-        await self.zaneclient.close()
+        zippedfile = zipfile.ZipFile(f"{self.loggingfilename}.zip", "w")
+        zippedfile.write(self.loggingfilename, compress_type=zipfile.ZIP_DEFLATED)
+        zippedfile.close()
+        if os.path.exists(self.loggingfilename):
+            os.remove(self.loggingfilename)
         await self.change_presence(status=discord.Status.offline, activity=None)
         await self.session.close()
         await self.db.pool.close()
@@ -74,15 +78,15 @@ bot = Elli0t(
        "cogs.Listeners",
        "cogs.Moderation",
        "cogs.Owner",
-       "cogs.Errors",
        "cogs.Images",
        "cogs.Chatbot",
        "cogs.Fun",
        "cogs.Utility",
        "cogs.Maths",
+       "cogs.Internet",
+       "cogs.Dev",
        "jishaku"
    ],
    prefixless=False,
-   database=database(),
-   logger=logger_setup()
+   database=database()
    )
