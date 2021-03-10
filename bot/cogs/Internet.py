@@ -22,16 +22,20 @@ class Internet(commands.Cog):
         Search google
         '''
         with ctx.channel.typing():
-            result = await self.google.search(query)
-            urlformat = query.replace(" ", "+")
-            embed = discord.Embed(title=f"Search results for {query}:", url=f"https://www.google.com/search?safe=active&q={urlformat}", colour=discord.Colour.green())
-            for entry in result[:3]:
-                embed.add_field(name=entry.title, value=f"{entry.url}\n{entry.description}", inline=False)
-            
-            embed.set_thumbnail(url=result[0].image_url or None)
-            
-            await ctx.send(embed=embed)
-            
+            try:
+                result = await self.google.search(query)
+                urlformat = query.replace(" ", "+")
+                embed = discord.Embed(title=f"Search results for {query}:", url=f"https://www.google.com/search?safe=active&q={urlformat}", colour=discord.Colour.green())
+                for entry in result[:3]:
+                    embed.add_field(name=entry.title, value=f"{entry.url}\n{entry.description}", inline=False)
+                
+                embed.set_thumbnail(url=result[0].image_url or None)
+                
+                await ctx.send(embed=embed)
+            except Exception as e:
+                embed = discord.Embed(title="Error!", description=f"```diff\n- {e}```", colour=discord.Colour.red())
+                await ctx.send(embed=embed)
+                
     @commands.command(name="lengthen")
     async def _lengthen(self, ctx, *, url):
         try:
