@@ -9,6 +9,8 @@ import googletrans
 from googletrans.constants import LANGUAGES
 from jishaku.functools import executor_function
 from .backend.paginator.paginator import paginator
+from mystbin import Client
+from jishaku.codeblocks import codeblock_converter
 
 morse = {
     "a": "._",
@@ -57,6 +59,7 @@ class Utility(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.trans = googletrans.Translator()
+        self.mystbin = Client()
 
     @commands.command(name="ping", aliases=["pong"])
     async def _ping(self, ctx):
@@ -317,6 +320,20 @@ class Utility(commands.Cog):
                 title="Error!", description=f"```diff\n- {e}```", colour=discord.Colour.red())
             await ctx.send(embed=embed)
 
-
+    @commands.command(name="mystbin")
+    async def _mystbin(self, ctx, *, text: codeblock_converter):
+        if text[1].strip("\n").startswith("https://mystb.in/") or text[1].strip("\n").startswith("http://mystb.in/"):
+            paste = await self.mystbin.get(text[1].strip("\n").strip())
+            text = f"```{paste.paste_syntax or ''}\n{paste.paste_content}```"
+            embed = discord.Embed(
+                title=paste.paste_id, description=text, colour=discord.Colour.teal())
+            await ctx.send(embed=embed)
+        else:
+            paste = await self.mystbin.post(text[1].strip("\n"), syntax=text[0])
+            embed = discord.Embed(
+                title=paste.paste_id, description=f"```\n{paste.url}```", colour=discord.Colour.teal())
+            await ctx.send(embed=embed)
+    
+    
 def setup(bot):
     bot.add_cog(Utility(bot))
