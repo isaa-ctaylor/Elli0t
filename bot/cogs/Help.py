@@ -84,7 +84,8 @@ class helpcommand(commands.HelpCommand):
             listofsmalldescriptions.append(temp)
         
         for index, page in enumerate(listofsmalldescriptions):
-            listofsmalldescriptions[index] = "\n".join([f"{i}: {page[i]}" for i in page])
+            listofsmalldescriptions[index] = (
+                "\n".join([f"{i}: {page[i]}" for i in page])).replace("`", "`\u200b")
         
         result = []
 
@@ -115,7 +116,8 @@ class helpcommand(commands.HelpCommand):
             listofsmalldescriptions.append(temp)
 
         for index, page in enumerate(listofsmalldescriptions):
-            listofsmalldescriptions[index] = "\n".join([f"{i}: {page[i]}" for i in page])
+            listofsmalldescriptions[index] = ("\n".join(
+                [f"{i}: {page[i]}" for i in page])).replace("`", "`\u200b")
 
         result = []
 
@@ -145,7 +147,7 @@ class helpcommand(commands.HelpCommand):
             listofsmalldescriptions.append(temp)
         
         for index, page in enumerate(listofsmalldescriptions):
-            listofsmalldescriptions[index] = "\n".join([f"{i}: {page[i]}" for i in page])
+            listofsmalldescriptions[index] = ("\n".join([f"{i}: {page[i]}" for i in page])).replace("`", "`\u200b")
 
         result = []
 
