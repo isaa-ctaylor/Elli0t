@@ -1,4 +1,3 @@
-
 import asyncio
 import functools
 import itertools
@@ -421,7 +420,7 @@ class Jukebox(commands.Cog):
     @commands.has_permissions(manage_guild=True)
     async def _stop(self, ctx: commands.Context):
         '''
-        Stop the song playing and cler the queue
+        Stop the song playing and clear the queue
         '''
         ctx.voice_state.songs.clear()
 
