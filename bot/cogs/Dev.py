@@ -1,6 +1,26 @@
-'''
-`python` command heavily influenced by jishaku py command
-'''
+"""
+MIT License
+
+Copyright (c) 2021 isaa-ctaylor
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+"""
 
 import asyncio
 import collections
@@ -19,9 +39,10 @@ from jishaku.repl import get_var_dict_from_ctx
 from jishaku.repl.compilation import AsyncCodeExecutor
 from jishaku.repl.scope import Scope
 import inspect
+import tabulate
 
 
-from .backend.paginator.paginator import paginator
+from .backend.paginator.paginator import paginator, input
 
 try:
     import psutil
@@ -127,8 +148,8 @@ class Dev(commands.Cog):
             await ctx.reply(embed=embed, mention_author=False)
     
     @commands.is_owner()
-    @_dev.command(name="python", aliases=["py"])
-    async def _dev_python(self, ctx, *, code: codeblock_converter):
+    @commands.command(name="eval")
+    async def _eval(self, ctx, *, code: codeblock_converter):
         '''
         Evaluate python code
         '''
@@ -165,9 +186,9 @@ class Dev(commands.Cog):
                                 
                                 for page in pages:
                                     embed = discord.Embed(description=f"```py\n{page}```", colour=discord.Colour.teal())
-                                    pages[pages.index(page)] = embed
+                                    pages[pages.index(page)] = input(embed, None)
                                     
-                                embedpaginator = paginator(ctx, remove_reactions=True)
+                                embedpaginator = paginator(ctx, remove_reactions=True, footer=True)
                                 embedpaginator.add_reaction("\U000023ea", "first")
                                 embedpaginator.add_reaction("\U000025c0", "back")
                                 embedpaginator.add_reaction("\U0001f5d1", "delete")
@@ -184,14 +205,6 @@ class Dev(commands.Cog):
                                 send(await ctx.reply(embed=embed, mention_author=False))
         finally:
             scope.clear_intersection(arg_dict)
-        
-    @commands.is_owner()
-    @commands.command(name="eval")
-    async def _eval(self, ctx, *, code: codeblock_converter):
-        '''
-        A shortcut for the command `dev python`
-        '''
-        await self._dev_python(ctx, code=code)
 
     @commands.is_owner()
     @_dev.command(name="source", aliases=["src"])
@@ -201,13 +214,13 @@ class Dev(commands.Cog):
         '''
         command = self.bot.get_command(command_name)
         if not command:
-            embed = discord.Embed(title="Error!", description=f"Couldn't find the command `{command_name}`!", colour=discord.Colour.red())
+            embed = discord.Embed(title="Error!", description=f"Couldn't find the command `{command_name}`!", colour=self.bot.bad_embed_colour)
             return await ctx.reply(embed=embed, mention_author=False)
         
         try:
             lines, _ = inspect.getsourcelines(command.callback)
         except (TypeError, OSError):
-            embed = discord.Embed(title="Error!", description=f"Couldn't retrieve the source for the command `{command_name}`!", colour=discord.Colour.red())
+            embed = discord.Embed(title="Error!", description=f"Couldn't retrieve the source for the command `{command_name}`!", colour=self.bot.bad_embed_colour)
             return await ctx.reply(embed=embed, mention_author=False)
         
         result = ''.join(lines).replace("`", "`\u200b")
@@ -218,9 +231,9 @@ class Dev(commands.Cog):
             
             for page in pages:
                 embed = discord.Embed(description=f"```py\n{page}```", colour=discord.Colour.teal())
-                pages[pages.index(page)] = embed
+                pages[pages.index(page)] = input(embed, None)
 
-            embedpaginator = paginator(ctx, remove_reactions=True)
+            embedpaginator = paginator(ctx, remove_reactions=True, two_way_reactions=True)
             embedpaginator.add_reaction("\U000023ea", "first")
             embedpaginator.add_reaction("\U000025c0", "back")
             embedpaginator.add_reaction("\U0001f5d1", "delete")
@@ -232,7 +245,7 @@ class Dev(commands.Cog):
             msg = await ctx.reply(embed=embed, mention_author=False)
             
             def check(reaction, user):
-                return user.id == ctx.author.id
+                return user.id == ctx.author.id and reaction.message.id == msg.id and str(reaction.emoji) == ""
             
             await msg.add_reaction("\U000023f9")
             
@@ -242,11 +255,10 @@ class Dev(commands.Cog):
                 pass
             else:
                 await msg.delete()
-            
 
     @commands.is_owner()
     @_dev.command(name="purge", aliases=["cleanup"])
-    async def _purge(self, ctx, amount=10):
+    async def _dev_purge(self, ctx, amount=10):
         '''
         Clean up the bot's messages
         '''
@@ -257,8 +269,40 @@ class Dev(commands.Cog):
             await ctx.channel.purge(limit=amount, check=check, bulk=False)
             await ctx.message.add_reaction("\U0001f44c")
         except Exception as e:
-            embed = discord.Embed(title="Error!", description=f"```diff\n- {e}", colour=discord.Colour.red())
-            await ctx.send(embed=embed)
+            embed = discord.Embed(title="Error!", description=f"```diff\n- {e}", colour=self.bot.bad_embed_colour)
+            await ctx.reply(embed=embed, mention_author=False)
 
+    @commands.is_owner()
+    @_dev.command(name="sql", aliases=["db"])
+    async def _dev_sql(self, ctx, *, query):
+        async with self.bot.db.pool.acquire() as con:
+            if query.lower().startswith("select"):
+                data = await con.fetch(query)
+            else:
+                data = await con.execute(query)
+        
+        m = None
+        if isinstance(data, list):
+            embed = discord.Embed(description=f"```\n{tabulate.tabulate([dict(thing) for thing in data], headers='keys', tablefmt='pretty')}```", colour=self.bot.neutral_embed_colour)
+            m = await ctx.reply(embed=embed, mention_author=False)
+        else:
+            embed = discord.Embed(description=f"```\n{data}```", colour=self.bot.neutral_embed_colour)
+            m = await ctx.reply(embed=embed, mention_author=False)
+        
+        if m:
+            await m.add_reaction("\U000023f9")
+            
+            def check(r, u):
+                return u.id == ctx.author.id and r.message.id == m.id and str(r.emoji) == "\U000023f9"
+            
+            reaction, user = await self.bot.wait_for("reaction_add", check=check)
+            
+            if reaction and user:
+                try:
+                    await m.delete()
+                    await ctx.message.add_reaction("\U0001f44d")
+                except:
+                    pass
+                
 def setup(bot):
     bot.add_cog(Dev(bot))

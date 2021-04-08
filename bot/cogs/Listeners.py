@@ -1,12 +1,48 @@
-import discord
-from discord.ext import commands
+"""
+MIT License
+
+Copyright (c) 2021 isaa-ctaylor
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+"""
+
 import logging
 import traceback
+from difflib import get_close_matches
+from collections import Counter
+
+import discord
+from discord.ext import commands
+
+class Blacklisted(Exception):
+    def __init__(self, user, reason):
+        self.user = user
+        self.reason = reason
+        
+    def __str__(self):
+        return f"Sorry! You have been blacklisted from using the bot for the reason: {self.reason}!"
 
 class Listeners(commands.Cog):
     def __init__(self, bot):
         self.bot=bot
         self.logger=logging.getLogger("discord")
+        self.bot.add_check(self._check_not_blacklisted)
 
     @commands.Cog.listener(name="on_command")
     async def _log_command_invoke(self, ctx):
@@ -15,6 +51,11 @@ class Listeners(commands.Cog):
 
     @commands.Cog.listener(name="on_command_completion")
     async def _log_command_completion(self, ctx):
+        try:
+            self.bot.command_counter
+        except:
+            self.bot.command_counter = Counter()
+        self.bot.command_counter.update([str(ctx.command.name)])
         self.logger.info(
             f"Command \"{ctx.command.name}\" finished successfully. {ctx.author.name}#{ctx.author.discriminator} in guild {ctx.guild.name}")
 
@@ -32,12 +73,25 @@ class Listeners(commands.Cog):
             if cog._get_overridden_method(cog.cog_command_error) is not None:
                 return
 
-        ignored = (commands.errors.CommandNotFound, )
+        ignored = ()
         error = getattr(error, 'original', error)
 
         if isinstance(error, ignored):
             return
+        
+        if isinstance(error, commands.ConversionError):
+            await ctx.error(f"Failed to convert {error.original} to type {error.converter.__name__}")
+        
+        if isinstance(error, commands.CommandNotFound):
+            thecommands = [command.name for command in self.bot.commands if not command.hidden and command]
 
+            matches = get_close_matches(ctx.invoked_with, thecommands)
+            
+            if matches:
+                embed = discord.Embed(title="Error!", description=f"I couldn't find that command!\nMaybe you meant `{ctx.prefix}{matches[0]}`?", colour=self.bot.bad_embed_colour)
+                await ctx.reply(embed=embed, mention_author=False)
+            
+            
         if isinstance(error, commands.DisabledCommand):
             await ctx.reply(f'{ctx.command} has been disabled.')
 
@@ -48,9 +102,12 @@ class Listeners(commands.Cog):
                 pass
 
         elif isinstance(error, commands.errors.BadArgument):
-            error_embed = discord.Embed(title="Error!", description=str(
-                error), colour=discord.Colour.red())
-            await ctx.reply(embed=error_embed)
+            if str(error).strip().startswith("Converting to \""):
+                to = str(error).split('"')[1].strip()
+                param = str(error).split('"')[3].strip()
+                return await ctx.error(f"Failed to convert the parameter passed for {param} to type {to}. Check {ctx.prefix}help {ctx.invoked_with} for more info.", reply=True)
+            else:
+                return await ctx.error(str(error), reply=True)
 
         elif isinstance(error, commands.errors.TooManyArguments):
             pass
@@ -65,13 +122,13 @@ class Listeners(commands.Cog):
         elif isinstance(error, commands.errors.MissingPermissions):
             perms = ", ".join(error.missing_perms)
             error_embed = discord.Embed(
-                title="Error!", description=f"You are missing the following perm(s): `{perms}`", colour=discord.Colour.red())
+                title="Error!", description=f"You are missing the following perm(s): `{perms}`", colour=self.bot.bad_embed_colour)
             await ctx.reply(embed=error_embed)
 
         elif isinstance(error, commands.errors.BotMissingPermissions):
             perms = ", ".join(error.missing_perms)
             error_embed = discord.Embed(
-                title="Error!", description=f"I am missing the following perm(s): `{perms}`", colour=discord.Colour.red())
+                title="Error!", description=f"I am missing the following perm(s): `{perms}`", colour=self.bot.bad_embed_colour)
             await ctx.reply(embed=error_embed)
 
         elif isinstance(error, discord.errors.Forbidden):
@@ -80,17 +137,17 @@ class Listeners(commands.Cog):
         elif isinstance(error, commands.errors.MissingRequiredArgument):
             param = str(error.param).split(":")[0]
             error_embed = discord.Embed(
-                title="Error!", description=f"Missing parameter: `{param}`", colour=discord.Colour.red())
+                title="Error!", description=f"Missing parameter: `{param}`", colour=self.bot.bad_embed_colour)
             await ctx.reply(embed=error_embed)
 
         elif isinstance(error, commands.NotOwner):
             embed = discord.Embed(
-                title="Error!", description="You need to be owner to execute this command!", colour=discord.Colour.red())
-            await ctx.send(embed=embed)
+                title="Error!", description="You need to be owner to execute this command!", colour=self.bot.bad_embed_colour)
+            await ctx.reply(embed=embed, mention_author=False)
 
         else:
             error_embed = discord.Embed(
-                title="Error!", description=f"```diff\n- {str(error)}```\nIf this keeps happening, please contact `isaa_ctaylor#2494`", colour=discord.Colour.red())
+                title="Error!", description=f"```diff\n- {str(error)}```\nIf this keeps happening, please contact `isaa_ctaylor#2494`", colour=self.bot.bad_embed_colour)
             
             tb = "".join(traceback.format_exception(
                 type(error), error, error.__traceback__))
@@ -105,5 +162,16 @@ class Listeners(commands.Cog):
         if after.content != before.content:
             await self.bot.process_commands(after)
             
+    @commands.Cog.listener(name="on_message")
+    async def _send_prefix(self, message):
+        if message.content in [str(self.bot.user.mention), str(message.guild.me.mention), "<@!778637164388810762>"]:
+            embed = discord.Embed(title="Hey there!", description=f"The prefix for this server is `{self.bot.prefixes[message.guild.id]}` or {message.guild.me.mention}!", colour=self.bot.neutral_embed_colour)
+            await message.channel.send(embed=embed)
+
+    async def _check_not_blacklisted(self, ctx):
+        if not str(ctx.author.id) in list(self.bot.blacklist):
+            return True
+        raise Blacklisted(ctx.author, self.bot.blacklist[str(ctx.author.id)] or "None specified")
+                        
 def setup(bot):
     bot.add_cog(Listeners(bot))

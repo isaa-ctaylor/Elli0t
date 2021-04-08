@@ -1,52 +1,83 @@
+"""
+MIT License
+
+Copyright (c) 2021 isaa-ctaylor
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+"""
+
 import os
 
-from asyncdagpi import Client, ImageFeatures
+from asyncdagpi import Client as dpClient, ImageFeatures
+from aiozaneapi import Client as zClient
 import discord
 from discord.ext import commands
 from dotenv import load_dotenv
 import aiohttp
-
+from typing import Optional, Union, Literal
 load_dotenv()
-
 
 class Images(commands.Cog):
     '''
-    Image manipulation using dagpi: https://dagpi.xyz/
+    Image manipulation
     '''
 
     def __init__(self, bot):
         self.bot = bot
-        self.dagpiclient = Client(os.getenv("ASYNCDAGPI"))
+        self.dagpiclient = dpClient(os.getenv("ASYNCDAGPI"))
+        
 
     @commands.Cog.listener(name="cog_command_error")
     async def _cog_error(self, ctx, error):
         if isinstance(error, aiohttp.client_exceptions.ContentTypeError):
-            embed = discord.Embed(title="Error", description="There was an error, please try again later", colour=discord.Colour.red())
-            await ctx.send(embed=embed)
+            embed = discord.Embed(title="Error", description="There was an error, please try again later", colour=self.bot.bad_embed_colour)
+            await ctx.reply(embed=embed, mention_author=False)
         else:
-            raise
-
+            raise error
+    
     @commands.command(name="avatar")
     async def _avatar(self, ctx, *, member: discord.Member = None):
         '''
         Get the avatar of the given member
         '''
-        if member:
-            await ctx.send(member.avatar_url)
-        else:
-            await ctx.send(ctx.author.avatar_url)
-
+        member = member or ctx.author
+        
+        embed = discord.Embed(title=f"{member.name}#{member.discriminator}'s avatar", colour=member.colour)
+        embed.set_image(url=member.avatar_url_as(format=None, static_format="png"))
+        
+        await ctx.reply(embed=embed, mention_author=False)
+        
+    
+    async def process_image(self, ctx, member, proccesstype):
+        url = str(member.avatar_url_as(
+            format="png", static_format="png", size=1024))
+        img = await self.dagpiclient.image_process(proccesstype, url)
+        file = discord.File(fp=img.image, filename=f"image.{img.format}")
+        return file
+    
     @commands.command(name="pixel", aliases=["pixelate"])
     async def _pixelate(self, ctx, *, member: discord.Member):
         '''
         Pixelate the given member
         '''
         with ctx.channel.typing():
-            url = str(member.avatar_url_as(
-                format="png", static_format="png", size=1024))
-            img = await self.dagpiclient.image_process(ImageFeatures.pixel(), url)
-            file = discord.File(fp=img.image, filename=f"pixel.{img.format}")
-            await ctx.send(file=file)
+            await ctx.send(file=await self.process_image(ctx, member, ImageFeatures.pixel()))
 
     @commands.command(name="colours", aliases=["colors"])
     async def _colours(self, ctx, *, member: discord.Member):
@@ -54,11 +85,7 @@ class Images(commands.Cog):
         Analyse the colours of the given member
         '''
         with ctx.channel.typing():
-            url = str(member.avatar_url_as(
-                format="png", static_format="png", size=1024))
-            img = await self.dagpiclient.image_process(ImageFeatures.colors(), url)
-            file = discord.File(fp=img.image, filename=f"colours.{img.format}")
-            await ctx.send(file=file)
+            await ctx.send(file=await self.process_image(ctx, member, ImageFeatures.colors()))
 
     @commands.command(name="wanted", aliases=["want"])
     async def _wanted(self, ctx, *, member: discord.Member):
@@ -66,11 +93,7 @@ class Images(commands.Cog):
         Just like in the wild west
         '''
         with ctx.channel.typing():
-            url = str(member.avatar_url_as(
-                format="png", static_format="png", size=1024))
-            img = await self.dagpiclient.image_process(ImageFeatures.wanted(), url)
-            file = discord.File(fp=img.image, filename=f"wanted.{img.format}")
-            await ctx.send(file=file)
+            await ctx.send(file=await self.process_image(ctx, member, ImageFeatures.wanted()))
 
     @commands.command(name="triggered", aliases=["trigger"])
     async def _triggered(self, ctx, *, member: discord.Member):
@@ -78,12 +101,7 @@ class Images(commands.Cog):
         REEEE
         '''
         with ctx.channel.typing():
-            url = str(member.avatar_url_as(
-                format="png", static_format="png", size=1024))
-            img = await self.dagpiclient.image_process(ImageFeatures.triggered(), url)
-            file = discord.File(
-                fp=img.image, filename=f"triggered.{img.format}")
-            await ctx.send(file=file)
+            await ctx.send(file=await self.process_image(ctx, member, ImageFeatures.triggered()))
 
     @commands.command(name="america")
     async def _america(self, ctx, *, member: discord.Member):
@@ -92,11 +110,7 @@ class Images(commands.Cog):
         '''
         await ctx.send("Please wait, this may take some time")
         with ctx.channel.typing():
-            url = str(member.avatar_url_as(
-                format="png", static_format="png", size=1024))
-            img = await self.dagpiclient.image_process(ImageFeatures.america(), url)
-            file = discord.File(fp=img.image, filename=f"america.{img.format}")
-            await ctx.send(f"{ctx.author.mention}", file=file)
+            await ctx.send(file=await self.process_image(ctx, member, ImageFeatures.america()))
 
     @commands.command(name="wasted")
     async def _wasted(self, ctx, *, member: discord.Member):
@@ -104,11 +118,7 @@ class Images(commands.Cog):
         GTA but in discord
         '''
         with ctx.channel.typing():
-            url = str(member.avatar_url_as(
-                format="png", static_format="png", size=1024))
-            img = await self.dagpiclient.image_process(ImageFeatures.wasted(), url)
-            file = discord.File(fp=img.image, filename=f"wasted.{img.format}")
-            await ctx.send(file=file)
+            await ctx.send(file=await self.process_image(ctx, member, ImageFeatures.wasted()))
 
     @commands.command(name="invert")
     async def _invert(self, ctx, *, member: discord.Member):
@@ -116,11 +126,7 @@ class Images(commands.Cog):
         Invert the picture
         '''
         with ctx.channel.typing():
-            url = str(member.avatar_url_as(
-                format="png", static_format="png", size=1024))
-            img = await self.dagpiclient.image_process(ImageFeatures.invert(), url)
-            file = discord.File(fp=img.image, filename=f"invert.{img.format}")
-            await ctx.send(file=file)
+            await ctx.send(file=await self.process_image(ctx, member, ImageFeatures.invert()))
 
     @commands.command(name="triangle")
     async def _triangle(self, ctx, *, member: discord.Member):
@@ -128,11 +134,7 @@ class Images(commands.Cog):
         Triangles
         '''
         with ctx.channel.typing():
-            url = str(member.avatar_url_as(
-                format="png", static_format="png", size=1024))
-            img = await self.dagpiclient.image_process(ImageFeatures.triangle(), url)
-            file = discord.File(fp=img.image, filename=f"triangle.{img.format}")
-            await ctx.send(file=file)
+            await ctx.send(file=await self.process_image(ctx, member, ImageFeatures.triangle()))
 
     @commands.command(name="hog")
     async def _hog(self, ctx, *, member: discord.Member):
@@ -140,11 +142,7 @@ class Images(commands.Cog):
         Not really sure about this one either
         '''
         with ctx.channel.typing():
-            url = str(member.avatar_url_as(
-                format="png", static_format="png", size=1024))
-            img = await self.dagpiclient.image_process(ImageFeatures.hog(), url)
-            file = discord.File(fp=img.image, filename=f"hog.{img.format}")
-            await ctx.send(file=file)
+            await ctx.send(file=await self.process_image(ctx, member, ImageFeatures.hog()))
 
     @commands.command(name="blur")
     async def _blur(self, ctx, *, member: discord.Member):
@@ -152,11 +150,7 @@ class Images(commands.Cog):
         Forgotten your glasses?
         '''
         with ctx.channel.typing():
-            url = str(member.avatar_url_as(
-                format="png", static_format="png", size=1024))
-            img = await self.dagpiclient.image_process(ImageFeatures.blur(), url)
-            file = discord.File(fp=img.image, filename=f"blur.{img.format}")
-            await ctx.send(file=file)
+            await ctx.send(file=await self.process_image(ctx, member, ImageFeatures.blur()))
 
     @commands.command(name="rgb")
     async def _rgb(self, ctx, *, member: discord.Member):
@@ -165,11 +159,7 @@ class Images(commands.Cog):
         '''
         await ctx.send("Please wait, this may take some time")
         with ctx.channel.typing():
-            url = str(member.avatar_url_as(
-                format="png", static_format="png", size=1024))
-            img = await self.dagpiclient.image_process(ImageFeatures.rgb(), url)
-            file = discord.File(fp=img.image, filename=f"rgb.{img.format}")
-            await ctx.send(file=file)
+            await ctx.send(file=await self.process_image(ctx, member, ImageFeatures.rgb()))
 
     @commands.command(name="obama")
     async def _obama(self, ctx, *, member: discord.Member):
@@ -178,11 +168,7 @@ class Images(commands.Cog):
         '''
         await ctx.send("Please wait, this may take some time")
         with ctx.channel.typing():
-            url = str(member.avatar_url_as(
-                format="png", static_format="png", size=1024))
-            img = await self.dagpiclient.image_process(ImageFeatures.obama(), url)
-            file = discord.File(fp=img.image, filename=f"obama.{img.format}")
-            await ctx.send(file=file)
+            await ctx.send(file=await self.process_image(ctx, member, ImageFeatures.obama()))
             
     @commands.command(name="jail")
     async def _jail(self, ctx, *, member: discord.Member):
@@ -190,11 +176,7 @@ class Images(commands.Cog):
         You have been jailed
         '''
         with ctx.channel.typing():
-            url = str(member.avatar_url_as(
-                format="png", static_format="png", size=1024))
-            img = await self.dagpiclient.image_process(ImageFeatures.jail(), url)
-            file = discord.File(fp=img.image, filename=f"jail.{img.format}")
-            await ctx.send(file=file)
+            await ctx.send(file=await self.process_image(ctx, member, ImageFeatures.jail()))
             
     @commands.command(name="gay")
     async def _gay(self, ctx, *, member: discord.Member):
@@ -202,11 +184,7 @@ class Images(commands.Cog):
         Pride
         '''
         with ctx.channel.typing():
-            url = str(member.avatar_url_as(
-                format="png", static_format="png", size=1024))
-            img = await self.dagpiclient.image_process(ImageFeatures.gay(), url)
-            file = discord.File(fp=img.image, filename=f"gay.{img.format}")
-            await ctx.send(file=file)
+            await ctx.send(file=await self.process_image(ctx, member, ImageFeatures.gay()))
             
     @commands.command(name="deepfry")
     async def _deepfry(self, ctx, *, member: discord.Member):
@@ -214,11 +192,7 @@ class Images(commands.Cog):
         Like chips
         '''
         with ctx.channel.typing():
-            url = str(member.avatar_url_as(
-                format="png", static_format="png", size=1024))
-            img = await self.dagpiclient.image_process(ImageFeatures.deepfry(), url)
-            file = discord.File(fp=img.image, filename=f"deepfry.{img.format}")
-            await ctx.send(file=file)
+            await ctx.send(file=await self.process_image(ctx, member, ImageFeatures.deepfry()))
 
     @commands.command(name="ascii")
     async def _ascii(self, ctx, *, member: discord.Member):
@@ -226,11 +200,7 @@ class Images(commands.Cog):
         Your image, but ascii
         '''
         with ctx.channel.typing():
-            url = str(member.avatar_url_as(
-                format="png", static_format="png", size=1024))
-            img = await self.dagpiclient.image_process(ImageFeatures.ascii(), url)
-            file = discord.File(fp=img.image, filename=f"ascii.{img.format}")
-            await ctx.send(file=file)
+            await ctx.send(file=await self.process_image(ctx, member, ImageFeatures.ascii()))
     
 def setup(bot):
     bot.add_cog(Images(bot))

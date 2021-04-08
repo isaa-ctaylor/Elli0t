@@ -1,3 +1,26 @@
+"""
+MIT License
+
+Copyright (c) 2021 isaa-ctaylor
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+"""
 
 import asyncio
 import functools
@@ -381,11 +404,7 @@ class Jukebox(commands.Cog):
 
         await ctx.voice_state.stop()
         del self.voice_states[ctx.guild.id]
-        embed = discord.Embed(
-            title='Disconnected from voice channel',
-            color = 0xff0000
-        )
-        await ctx.send(embed=embed)
+        await ctx.send("\U0001f44d Disconnected")
 
     @commands.command(name='now', aliases=['current', 'playing'])
     async def _now(self, ctx: commands.Context):
@@ -421,7 +440,7 @@ class Jukebox(commands.Cog):
     @commands.has_permissions(manage_guild=True)
     async def _stop(self, ctx: commands.Context):
         '''
-        Stop the song playing and cler the queue
+        Stop the song playing and clear the queue
         '''
         ctx.voice_state.songs.clear()
 
@@ -474,7 +493,7 @@ class Jukebox(commands.Cog):
             queue += f'`{i + 1}.` [**{song.source.title}**]({song.source.url})\n'
 
         embed = discord.Embed(description=f'**{len(ctx.voice_state.songs)} tracks:**\n\n{queue}').set_footer(text=f'Viewing page {page}/{pages}')
-        await ctx.send(embed=embed)
+        await ctx.reply(embed=embed, mention_author=False)
 
     @commands.command(name='shuffle')
     async def _shuffle(self, ctx: commands.Context):

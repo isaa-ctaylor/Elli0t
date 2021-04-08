@@ -1,9 +1,33 @@
+"""
+MIT License
+
+Copyright (c) 2021 isaa-ctaylor
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+"""
+
 import asyncpg
 import asyncio
 import time
 
 
-class database(object):
+class database:
     def __init__(self, **kwargs):
         self.pool = asyncio.get_event_loop().run_until_complete(self.new_connection(**kwargs))
 
@@ -14,7 +38,7 @@ class database(object):
                                          database=kwargs.pop("database", "data"),
                                          host=kwargs.pop("host", "localhost"))
 
-    async def updatePrefixes(self, bot):
+    async def update_prefixes(self, bot):
         bot.prefixes = {}
         
         async with bot.db.pool.acquire() as con:
@@ -32,7 +56,7 @@ class database(object):
                                     ON CONFLICT (guild_id)
                                     DO UPDATE SET prefix = $2 WHERE prefixes.guild_id = $1;""", int(guild_id), str(prefix))
         
-        return await self.updatePrefixes(bot)
+        return await self.update_prefixes(bot)
 
     async def load_emoji_users(self, bot):
         async with bot.db.pool.acquire() as con:

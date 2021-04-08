@@ -1,9 +1,12 @@
 import asyncio
+from collections import namedtuple
 from typing import List, Optional, Union
 
 import discord
 from discord.ext import commands
+import traceback as tb
 
+input = namedtuple("input", ["content", "picture"])
 
 class paginator(object):
     def __init__(self, ctx, **kwargs):
@@ -16,7 +19,7 @@ class paginator(object):
         self.commands = []
         self.footer = kwargs.pop("footer", False)
         self.remove_reactions = True
-        self.two_way_reactions = kwargs.pop("two_way_reactions", False)
+        self.two_way_reactions = kwargs.pop("two_way_reactions", True)
         self.clear()
 
     def clear(self):
@@ -70,12 +73,14 @@ class paginator(object):
 
     async def wait_for(self, msg, check, timeout):
         if self.two_way_reactions:
-            done, pending = asyncio.wait([
+            done, pending = await asyncio.wait([
                 self.ctx.bot.wait_for(
-                    "reaction_add", check=check, timeout=timeout),
+                    "reaction_add", check=check),
                 self.ctx.bot.wait_for(
-                    "reaction_remove", check=check, timeout=timeout)
-            ], return_when=asyncio.FIRST_COMPLETED)
+                    "reaction_remove", check=check)
+            ], return_when=asyncio.FIRST_COMPLETED, timeout=timeout)
+            if not done:
+                raise asyncio.TimeoutError
             try:
                 reaction, user = done.pop().result()
             except asyncio.TimeoutError:
@@ -97,46 +102,54 @@ class paginator(object):
             else:
                 return reaction, user
 
-    async def edit(self, msg, emoji, user, embed=None):
+    async def edit(self, msg, emoji, user, embed=None, file=None):
         if self.remove_reactions:
             await self.remove_msg_reaction(msg, emoji, user)
         if embed:
-            await msg.edit(embed=embed)
+            await msg.edit(embed=embed, file=file)
         else:
-            await msg.edit(embed=(self.embeds[self.current_page].set_footer(text=f"{self.current_page + 1}/{len(self.embeds)}", icon_url=user.avatar_url)) if self.footer else self.embeds[self.current_page])
+            await msg.edit(embed=(self.embeds[self.current_page].content.set_footer(text=f"{self.current_page + 1}/{len(self.embeds)}", icon_url=user.avatar_url)) if self.footer else self.embeds[self.current_page].content)
 
-
-    async def send(self, embeds: List[discord.Embed], send_to: Optional[Union[commands.Context, discord.Member, discord.User]] = None):
+    async def send(self, embeds: List[input], send_to: Optional[Union[commands.Context, discord.Member, discord.User]] = None):
         self.embeds = embeds
         
-        if not send_to:
-            send_to = self.ctx
+        def check(reaction, user):
+            return user == wait_for and reaction.message.id == msg.id and str(reaction.emoji) in self.emojis
+    
+        send_to = send_to or self.ctx
+        
+        wait_for = self.ctx.author if send_to == self.ctx else send_to
+        
+        if len(self.embeds) == 0:
+            return
         
         if len(self.embeds) == 1:
             try:
-                return await send_to.send(embed=self.embeds[0])
-            except:
+                m = await send_to.send(embed=self.embeds[0].content, file=self.embeds[0].picture)
+                await m.add_reaction("\U000023f9")
+                r, u = await self.wait_for(m, check, None)
+                if str(r.emoji) == "\U000023f9":
+                    await m.delete()
+                    return
+            except Exception as e:
+                await send_to.send(e)
                 return
-            
-
-
+        
         self.current_page = 0
 
-        wait_for = self.ctx.author if send_to == self.ctx else send_to
+        
 
         if self.footer:
-            self.embeds[0].set_footer(
-                text=f"{self.current_page + 1}/{len(self.embeds)}", icon_url=wait_for.author.avatar_url)
+            self.embeds[0].content.set_footer(
+                text=f"{self.current_page + 1}/{len(self.embeds)}", icon_url=wait_for.avatar_url)
 
-        msg = await send_to.send(embed=self.embeds[0])
+        msg = await send_to.send(embed=self.embeds[0].content, file=self.embeds[0].picture)
 
         for emoji in self.emojis:
             await msg.add_reaction(emoji)
+            await asyncio.sleep(0.25)
 
         msg = await msg.channel.fetch_message(msg.id)
-
-        def check(reaction, user):
-            return user == wait_for and reaction.message.id == msg.id and str(reaction.emoji) in self.emojis
 
         navigating = True
 
@@ -144,13 +157,13 @@ class paginator(object):
             if self.timeout > 0:
                 try:
                     reaction, user = await self.wait_for(msg, check, self.timeout)
-                except TypeError:
+                except (TypeError, asyncio.TimeoutError):
                     await self.clear_msg_reactions(msg)
                     navigating = False
             else:
                 try:
                     reaction, user = await self.wait_for(msg, check, None)
-                except TypeError:
+                except (TypeError, asyncio.TimeoutError):
                     await self.clear_msg_reactions(msg)
                     navigating = False
 
@@ -194,7 +207,7 @@ class paginator(object):
 
                 elif command == "info":
                     embed = discord.Embed(title="Info", description="Seems like you stumbled upon the help page! Use the arrows below to move around the menu!",
-                                          colour=discord.Colour.random()).set_footer(text=f"Requested by {wait_for.name}#{wait_for.discriminator}", icon_url=user.avatar_url)
+                                          colour=self.bot.neutral_embed_colour).set_footer(text=f"Requested by {wait_for.name}#{wait_for.discriminator}", icon_url=user.avatar_url)
                     await self.edit(msg, emoji, user, embed)
 
                 elif command == "number":

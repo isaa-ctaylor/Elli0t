@@ -22,15 +22,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-from discord.ext import commands
-
-async def get_prefix(bot, message):
-    '''
-    Returns the prefix for the given guild
-    '''
-    if (message.author.id in bot.owner_ids) and bot.prefixless:
-        return commands.when_mentioned_or(["", bot.prefixes[message.guild.id]])(bot, message)
-    if message.guild:
-        return commands.when_mentioned_or(bot.prefixes[message.guild.id])(bot, message)
-    else:
-        return commands.when_mentioned_or("-")(bot, message)
+async def getItem(dict, item):
+    for i in dict:
+        if dict[i] == item:
+            return i
+    return None

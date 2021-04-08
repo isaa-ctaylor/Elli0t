@@ -1,13 +1,37 @@
-import asyncio
-import json
+"""
+MIT License
+
+Copyright (c) 2021 isaa-ctaylor
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+"""
+
 import os
 import difflib
 
 import discord
 from discord.ext import commands
+from jishaku.functools import executor_function
+import json
 
 dirname = os.path.dirname(__file__)
-filename = os.path.join(dirname, ".")
+filename = os.path.join(dirname, "../blacklist.json")
 
 
 class Owner(commands.Cog):
@@ -28,7 +52,7 @@ class Owner(commands.Cog):
         try:
             self.bot.load_extension(cog)
             embed = discord.Embed(
-                title="Success!", description=f"Loaded `{cog}`", colour=discord.Colour.green())
+                title="Success!", description=f"Loaded `{cog}`", colour=self.bot.good_embed_colour)
             if cog not in self.cogs:
                 if cog in self.whitelist or cog.startswith("cogs."):
                     self.cogs.append(cog)
@@ -36,7 +60,7 @@ class Owner(commands.Cog):
                     self.cogs.append(f"cogs.{cog}")
         except Exception as e:
             embed = discord.Embed(
-                title="Error!", description=f"Error loading `{cog}`: `{e}`", colour=discord.Colour.red())
+                title="Error!", description=f"Error loading `{cog}`: `{e}`", colour=self.bot.bad_embed_colour)
         finally:
             return embed
 
@@ -44,10 +68,10 @@ class Owner(commands.Cog):
         try:
             self.bot.reload_extension(cog)
             embed = discord.Embed(
-                title="Success!", description=f"Reloaded `{cog}`", colour=discord.Colour.green())
+                title="Success!", description=f"Reloaded `{cog}`", colour=self.bot.good_embed_colour)
         except Exception as e:
             embed = discord.Embed(
-                title="Error!", description=f"Error reloading `{cog}`: `{e}`", colour=discord.Colour.red())
+                title="Error!", description=f"Error reloading `{cog}`: `{e}`", colour=self.bot.bad_embed_colour)
         finally:
             self.cogs.sort()
             return embed
@@ -56,7 +80,7 @@ class Owner(commands.Cog):
         try:
             self.bot.unload_extension(cog)
             embed = discord.Embed(
-                title="Success!", description=f"Unloaded `{cog}`", colour=discord.Colour.green())
+                title="Success!", description=f"Unloaded `{cog}`", colour=self.bot.good_embed_colour)
             if cog in self.cogs:
                 if cog in self.whitelist or cog.startswith("cogs."):
                     self.cogs.pop(self.cogs.index(cog))
@@ -65,7 +89,7 @@ class Owner(commands.Cog):
                         self.cogs.index(f"cogs.{cog}"))
         except Exception as e:
             embed = discord.Embed(
-                title="Error!", description=f"Error unloading `{cog}`: `{e}`", colour=discord.Colour.red())
+                title="Error!", description=f"Error unloading `{cog}`: `{e}`", colour=self.bot.bad_embed_colour)
         finally:
             self.cogs.sort()
             return embed
@@ -106,7 +130,7 @@ class Owner(commands.Cog):
                         f"<:redCross:813679325114794014>`{cog}`: `{e}`")
                     bad += 1
 
-            colour = discord.Colour.green() if good >= bad else discord.Colour.red()
+            colour = self.bot.good_embed_colour if good >= bad else self.bot.bad_embed_colour
             cogs = "\n".join(cogs)
 
             embed = discord.Embed(title="Reloaded all cogs",
@@ -134,9 +158,31 @@ class Owner(commands.Cog):
             
     @commands.command(name="restart")
     async def _restart(self, ctx):
-        await ctx.send(embed=discord.Embed(title="Restarting", description="Be back soon!", colour=discord.Colour.green()))
+        await ctx.send(embed=discord.Embed(title="Restarting", description="Be back soon!", colour=self.bot.good_embed_colour))
         await self.bot.close()
 
+    @executor_function
+    def _do_blacklist(self, user, reason):
+        with open(filename, "r") as f:
+            data = json.load(f)
+        
+        if not data.get(str(user), None):
+            data[str(user)] = reason or "None specified"
+            self.bot.blacklist[str(user)] = reason or "None specified"
+        else:
+            del data[str(user)]
+            del self.bot.blacklist[str(user)]
+        
+        with open(filename, "w") as f:
+            json.dump(data, f, indent=4)
+    
+    @commands.command(name="blacklist")
+    async def _blacklist(self, ctx, user: discord.User, *, reason: str = None):
+        if not user.id == self.bot.owner_id:
+            await self._do_blacklist(user.id, reason)
+            return await ctx.message.add_reaction("\U0001f44d")
+        return await ctx.message.add_reaction("\U0000274c")
+    
     @_load.error
     @_reload.error
     @_unload.error
@@ -144,8 +190,10 @@ class Owner(commands.Cog):
     async def _NotOwner(self, ctx, error):
         if isinstance(error, discord.ext.commands.errors.CheckFailure):
             error_embed = discord.Embed(
-                title="Error!", description="You need to be owner to use this command!", colour=discord.Colour.red())
+                title="Error!", description="You need to be owner to use this command!", colour=self.bot.bad_embed_colour)
             await ctx.send(embed=error_embed)
+        else:
+            raise error
 
 
 def setup(bot):

@@ -22,15 +22,26 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
+import discord
 from discord.ext import commands
+import statcord
 
-async def get_prefix(bot, message):
-    '''
-    Returns the prefix for the given guild
-    '''
-    if (message.author.id in bot.owner_ids) and bot.prefixless:
-        return commands.when_mentioned_or(["", bot.prefixes[message.guild.id]])(bot, message)
-    if message.guild:
-        return commands.when_mentioned_or(bot.prefixes[message.guild.id])(bot, message)
-    else:
-        return commands.when_mentioned_or("-")(bot, message)
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+class Statcord(commands.Cog):
+    def __init__(self, bot):
+        self.bot = bot
+        self.key = os.getenv("statcord")
+        self.api = statcord.Client(self.bot, self.key, mem=True, cpu=True, bandwidth=True)
+        self.api.start_loop()
+
+    @commands.Cog.listener(name="on_command")
+    async def log_command(self, ctx):
+        self.api.command_run(ctx)
+
+
+def setup(bot):
+    bot.add_cog(Statcord(bot))
