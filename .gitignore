@@ -136,3 +136,5 @@ Owner.py
 beta/
 Testing/
 logs/
+blacklist.json
+config.yaml
