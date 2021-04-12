@@ -9,16 +9,12 @@ body {
   width: 70%;
 }
 
-h1 .title {
+.title {
     background-color: #F1F1F1;
     color: #abb2bf;
-    padding-bottom: 0px;
-    margin-bottom: 0px;
 }
 
-p .description {
+.description {
     background-color: #F1F1F1;
     color: #abb2bf;
-    padding-top: 0px;
-    margin: 0px;
 }
