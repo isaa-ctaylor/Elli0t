@@ -1,0 +1,15 @@
+body {
+    margin-top: 100px;
+    background-color: #F1F1F1;
+    font-family: 'Poppins', sans-serif;
+}
+
+.center {
+  margin: auto;
+  width: 60%;
+}
+
+h1 .title {
+    background-color: #F1F1F1;
+    color: black;
+}
