@@ -10,12 +10,14 @@ body {
 }
 
 .title {
+  font-size: 300%;
   margin-top: 90px;
   background-color: #ffd55a;
   color: #abb2bf;
 }
 
 .description {
+  font-size: 150%;
   background-color: #ffd55a;
   color: #abb2bf;
 }
