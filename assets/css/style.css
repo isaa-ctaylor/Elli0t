@@ -10,14 +10,15 @@ body {
 }
 
 .title {
-  font-size: 300%;
+  -webkit-font-size: -webkit-xxx-large;
+  font-size: xxx-large;
   margin-top: 90px;
   background-color: #ffd55a;
   color: #abb2bf;
 }
 
 .description {
-  font-size: 150%;
+  font-size: x-large;
   background-color: #ffd55a;
   color: #abb2bf;
 }
@@ -39,6 +40,8 @@ ul {
 }
 
 li a {
+  margin: 5px;
+  border-radius: 5px;
   display: block;
   color: white;
   text-align: center;
@@ -47,20 +50,24 @@ li a {
 }
 
 li a .right .left:hover:not(.active) {
+  border-radius: 5px;
+  margin: 5px;
   background-color: #111;
   color: white;
 }
 
 .active {
+  margin: 5px;
+  border-radius: 5px;
   background-color: #6dd47e;
 }
 
 .loader {
   margin: auto;
-  border: 16px solid #f3f3f3;
+  border: 16px solid #6dd47e;
   border-radius: 50%;
-  border-top: 16px solid #3498db;
-  border-bottom: 16px solid #3498db;
+  border-top: 16px solid #6dd47e;
+  border-bottom: 16px solid #6dd47e;
   width: 120px;
   height: 120px;
   -webkit-animation: spin 1s linear infinite;
