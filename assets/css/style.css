@@ -66,8 +66,8 @@ li a .right .left:hover:not(.active) {
   margin: auto;
   border: 16px solid #6dd47e;
   border-radius: 50%;
-  border-top: 16px solid #6dd47e;
-  border-bottom: 16px solid #6dd47e;
+  border-top: 16px solid white;
+  border-bottom: 16px solid white;
   width: 120px;
   height: 120px;
   -webkit-animation: spin 1s linear infinite;
@@ -82,4 +82,36 @@ li a .right .left:hover:not(.active) {
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
+}
+
+.button {
+  background-color: #6dd47e; /* Green */
+  border: none;
+  color: white;
+  padding: 15px 15px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 16px;
+  margin: 5px;
+  bottom: 0;
+  right: 0;
+  position: fixed;
+  border-radius: 50px;
+}
+
+.dark-mode {
+  background-color: black;
+}
+
+.dark-mode ul {
+  background-color: black;
+} 
+
+.dark-mode .description {
+  background-color: black;
+}
+
+.dark-mode .title {
+  background-color: black;
 }
