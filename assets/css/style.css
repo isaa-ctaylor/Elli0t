@@ -12,15 +12,15 @@ body {
 .title {
   -webkit-font-size: -webkit-xxx-large;
   font-size: xxx-large;
-  margin-top: 90px;
+  margin-top: 70px;
   background-color: #ffd55a;
-  color: #abb2bf;
+  color: #a5acb9;
 }
 
 .description {
   font-size: x-large;
   background-color: #ffd55a;
-  color: #abb2bf;
+  color: #a5acb9;
 }
 
 ul {
@@ -40,7 +40,7 @@ ul {
 }
 
 li a {
-  margin: 5px;
+  margin: 10px;
   border-radius: 5px;
   display: block;
   color: white;
@@ -51,7 +51,7 @@ li a {
 
 li a .right .left:hover:not(.active) {
   border-radius: 5px;
-  margin: 5px;
+  margin: 10px;
   background-color: #111;
   color: white;
 }
@@ -66,8 +66,8 @@ li a .right .left:hover:not(.active) {
   margin: auto;
   border: 16px solid #6dd47e;
   border-radius: 50%;
-  border-top: 16px solid white;
-  border-bottom: 16px solid white;
+  border-top: 16px solid #ffd55a;
+  border-bottom: 16px solid #ffd55a;
   width: 120px;
   height: 120px;
   -webkit-animation: spin 1s linear infinite;
@@ -93,7 +93,7 @@ li a .right .left:hover:not(.active) {
   text-decoration: none;
   display: inline-block;
   font-size: 16px;
-  margin: 5px;
+  margin: 10px;
   bottom: 0;
   right: 0;
   position: fixed;
@@ -114,4 +114,10 @@ li a .right .left:hover:not(.active) {
 
 .dark-mode .title {
   background-color: black;
+}
+
+.link {
+  font-size: x-large;
+  background-color: #ffd55a;
+  color: #a5acb9;
 }
