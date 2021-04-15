@@ -121,3 +121,9 @@ li a .right .left:hover:not(.active) {
   background-color: #ffd55a;
   color: #a5acb9;
 }
+
+.link:visited {
+  font-size: x-large;
+  background-color: #ffd55a;
+  color: #a5acb9;
+}
