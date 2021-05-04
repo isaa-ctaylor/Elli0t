@@ -8,7 +8,7 @@ import traceback as tb
 
 input = namedtuple("input", ["content", "picture"])
 
-class paginator(object):
+class paginator:
     def __init__(self, ctx, **kwargs):
         self.embeds = None
         self.ctx = ctx
@@ -226,3 +226,13 @@ class paginator(object):
                     await msg.delete()
                     await self.ctx.message.add_reaction("\U0001f44d")
                     navigating = False
+                    
+class quickpaginator(paginator):
+    def __init__(*args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.add_reaction("\U000023ea", "first")
+        self.add_reaction("\U000025c0", "back")
+        self.add_reaction("\U0001f5d1", "delete")
+        self.add_reaction("\U000025b6", "next")
+        self.add_reaction("\U000023e9", "last")
