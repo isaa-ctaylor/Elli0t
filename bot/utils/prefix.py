@@ -28,9 +28,12 @@ async def get_prefix(bot, message):
     '''
     Returns the prefix for the given guild
     '''
-    if (message.author.id in bot.owner_ids) and bot.prefixless:
-        return commands.when_mentioned_or(["", bot.prefixes[message.guild.id]])(bot, message)
-    if message.guild:
-        return commands.when_mentioned_or(bot.prefixes[message.guild.id])(bot, message)
-    else:
+    try:
+        if (message.author.id in bot.owner_ids) and bot.prefixless:
+            return commands.when_mentioned_or(["", bot.prefixes.get(message.guild.id, "-")])(bot, message)
+        if message.guild:
+            return commands.when_mentioned_or(bot.prefixes.get(message.guild.id, "-"))(bot, message)
+        else:
+            return commands.when_mentioned_or("-")(bot, message)
+    except:
         return commands.when_mentioned_or("-")(bot, message)
