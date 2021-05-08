@@ -23,10 +23,9 @@ SOFTWARE.
 """
 
 import logging
-import traceback
-from difflib import get_close_matches
 from collections import Counter
 
+import humanize
 import discord
 from discord.ext import commands
 from discord.mentions import AllowedMentions
@@ -36,8 +35,6 @@ class Listeners(commands.Cog):
         self.bot=bot
         self.logger=logging.getLogger("discord")
         self.bot.add_check(self._check_not_blacklisted)
-        
-
 
     @commands.Cog.listener(name="on_command")
     async def _log_command_invoke(self, ctx):
@@ -53,110 +50,6 @@ class Listeners(commands.Cog):
         self.bot.command_counter.update([str(ctx.command.name)])
         self.logger.info(
             f"Command \"{ctx.command.name}\" finished successfully. {ctx.author.name}#{ctx.author.discriminator} in guild {ctx.guild.name}")
-
-    # @commands.Cog.listener()
-    # async def on_command_error(self, ctx, error):
-    #     """
-    #     The default command error handler provided by the bot.
-    #     """
-    #     if hasattr(ctx.command, 'on_error'):
-    #         return
-
-    #     cog = ctx.cog
-
-    #     if cog:
-    #         if cog._get_overridden_method(cog.cog_command_error) is not None:
-    #             return
-
-    #     ignored = ()
-    #     error = getattr(error, 'original', error)
-
-    #     if isinstance(error, ignored):
-    #         return
-        
-    #     # if isinstance(error, Blacklisted):
-    #     #     return await ctx.error(f"Sorry! You are blacklisted for reason: {error.reason}", reply=True)
-        
-    #     if isinstance(error, commands.CommandOnCooldown):
-    #         await ctx.error(f"This command is on cooldown. Try again in {int(error.retry_after)}.")
-        
-    #     if isinstance(error, commands.ConversionError):
-    #         await ctx.error(f"Failed to convert {error.original} to type {error.converter.__name__}")
-        
-    #     if isinstance(error, commands.CommandNotFound):
-    #         thecommands = [command.name for command in self.bot.commands if not command.hidden and command]
-
-    #         matches = get_close_matches(ctx.invoked_with, thecommands)
-            
-    #         if matches:
-    #             embed = discord.Embed(title="Error!", description=f"I couldn't find that command!\nMaybe you meant `{ctx.prefix}{matches[0]}`?", colour=self.bot.bad_embed_colour)
-    #             await ctx.reply(embed=embed, mention_author=False)
-            
-            
-    #     if isinstance(error, commands.DisabledCommand):
-    #         await ctx.reply(f'{ctx.command} has been disabled.')
-
-    #     elif isinstance(error, commands.NoPrivateMessage):
-    #         try:
-    #             await ctx.author.send(f'{ctx.command} can not be used in Private Messages.')
-    #         except discord.HTTPException:
-    #             pass
-
-    #     elif isinstance(error, commands.errors.BadArgument):
-    #         if str(error).strip().startswith("Converting to \""):
-    #             to = str(error).split('"')[1].strip()
-    #             param = str(error).split('"')[3].strip()
-    #             return await ctx.error(f"Failed to convert the parameter passed for {param} to type {to}. Check {ctx.prefix}help {ctx.invoked_with} for more info.", reply=True)
-    #         else:
-    #             return await ctx.error(str(error), reply=True)
-
-    #     elif isinstance(error, commands.errors.TooManyArguments):
-    #         pass
-
-    #     elif isinstance(error, discord.errors.HTTPException):
-    #         return
-    #         await ctx.reply("There was an error, please try again later. If you are trying to message someone, they might have it turned off.")
-
-    #     elif isinstance(error, discord.errors.NotFound):
-    #         pass
-
-    #     elif isinstance(error, commands.errors.MissingPermissions):
-    #         perms = ", ".join(error.missing_perms)
-    #         error_embed = discord.Embed(
-    #             title="Error!", description=f"You are missing the following perm(s): `{perms}`", colour=self.bot.bad_embed_colour)
-    #         await ctx.reply(embed=error_embed)
-
-    #     elif isinstance(error, commands.errors.BotMissingPermissions):
-    #         perms = ", ".join(error.missing_perms)
-    #         error_embed = discord.Embed(
-    #             title="Error!", description=f"I am missing the following perm(s): `{perms}`", colour=self.bot.bad_embed_colour)
-    #         await ctx.reply(embed=error_embed)
-
-    #     elif isinstance(error, discord.errors.Forbidden):
-    #         await ctx.reply("I couldn't do that, sorry. Try checking my perms")
-
-    #     elif isinstance(error, commands.errors.MissingRequiredArgument):
-    #         param = str(error.param).split(":")[0]
-    #         error_embed = discord.Embed(
-    #             title="Error!", description=f"Missing parameter: `{param}`", colour=self.bot.bad_embed_colour)
-    #         await ctx.reply(embed=error_embed)
-
-    #     elif isinstance(error, commands.NotOwner):
-    #         embed = discord.Embed(
-    #             title="Error!", description="You need to be owner to execute this command!", colour=self.bot.bad_embed_colour)
-    #         await ctx.reply(embed=embed, mention_author=False)
-
-    #     else:
-    #         error_embed = discord.Embed(
-    #             title="Error!", description=f"{type(error)}```diff\n- {str(error)}```\nIf this keeps happening, please contact `isaa_ctaylor#2494`", colour=self.bot.bad_embed_colour)
-            
-    #         tb = "".join(traceback.format_exception(
-    #             type(error), error, error.__traceback__))
-            
-    #         self.logger.error(
-    #             f"Command error!\nCommand name: {ctx.command.qualified_name}, Author: {ctx.author.name}#{ctx.author.discriminator}\n{tb}")
-            
-    #         await ctx.reply(embed=error_embed)
             
     @commands.Cog.listener(name="on_message_edit")
     async def _reinvoke_commands(self, before, after):
@@ -165,7 +58,7 @@ class Listeners(commands.Cog):
             
     @commands.Cog.listener(name="on_message")
     async def _send_prefix(self, message):
-        if message.content in [str(self.bot.user.mention), "<@!778637164388810762>"]:
+        if message.content in [str(self.bot.user.mention), "<@!778637164388810762>", str(ctx.guild.me.mention)]:
             await ctx.embed(title="Hey there!", description=f"The prefix for this server is `{self.bot.prefixes[message.guild.id]}` or {message.guild.me.mention}!", colour=self.bot.neutral_embed_colour)
 
     @commands.Cog.listener(name="on_message")
@@ -186,12 +79,27 @@ class Listeners(commands.Cog):
             await message.reply(f"Welcome back {message.author.mention}! I have removed your afk status.", mention_author=False, allowed_mentions=AllowedMentions.none())
     
     @commands.Cog.listener(name="on_guild_join")
-    async def _set_prefix_in_db(self, guild):
-        channel = await (await self.bot.fetch_guild(799581511937425468)).fetch_channel(839200251347730473)
-        await channel.send("test")
-    
+    async def _log_guild_join(self, guild: discord.Guild):
+        embed = discord.Embed(title="New guild!", colour=self.bot.neutral_embed_colour)
+        embed.add_field(name="Guild name", value=f"```\n{guild.name}```", inline=True)
+        embed.add_field(name="Guild owner", value=f"```\n{guild.owner} - ({guild.owner.id})```", inline=True)
+        embed.add_field(name="Guild members", value=f"```\n{guild.member_count}```", inline=True)
+        embed.add_field(name="Guild region", value=f"```\n{str(guild.region).capitalize()}```", inline=True)
+        embed.add_field(name="Guild created", value=f"```\n{humanize.naturaldate(guild.created_at)}```", inline=True)
+        embed.set_thumbnail(url=guild.icon.url)
+        await self.bot.get_channel(839200251347730473).send(embed=embed)
+
+    @commands.Cog.listener(name="on_guild_leave")
+    async def _log_guild_join(self, guild: discord.Guild):
+        try:
+            embed = discord.Embed(title="Got removed from a guild!", description=f"Got removed from `{guild.name}` losing `{guild.member_count}` members!")
+            await self.bot.get_channel(839200251347730473).send(embed=embed)
+        except Exception as e:
+            self.logger.error(e)
+            await self.bot.get_channel(839200251347730473).send(e)
+
     async def _check_not_blacklisted(self, ctx):
-        if not str(ctx.author.id) in list(self.bot.blacklist):
+        if str(ctx.author.id) not in list(self.bot.blacklist):
             return True
     
 def setup(bot):
