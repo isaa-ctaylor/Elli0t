@@ -1,0 +1,4 @@
+embed_colours:
+  embed_good_colour: "#2ECC71"
+  embed_bad_colour: "#FF0000"
+  embed_neutral_colour: "#1ABC9C"
