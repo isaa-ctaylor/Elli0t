@@ -140,7 +140,7 @@ def eval(fx: str, variables: dict, funcs: dict):
                 function = ""
             else:
                 value = float(value) - float(eval(new_fx, variables, funcs))
-            i = i + len(new_fx)
+            i += len(new_fx)
         elif character == '/':
             new_fx = nextFunction(fx[i + 1:len(fx)])
             if hasNumber == True:
@@ -174,7 +174,7 @@ def eval(fx: str, variables: dict, funcs: dict):
         elif character == '0' or character == '1' or character == '2' or character == '3' or character == '4' or character == '5' or character == '6' or character == '7' or character == '8' or character == '9':
 
             if hasFunction == True:
-                function = function + character
+                function += character
 
             else:
                 hasNumber = True
@@ -189,7 +189,7 @@ def eval(fx: str, variables: dict, funcs: dict):
                 raise BadExpression("The expression ends in \".\"")
 
             if hasNumber == True and len(number) > 0:
-                number = number + character
+                number += character
 
         elif character == '(':
 
