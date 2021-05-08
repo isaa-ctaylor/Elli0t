@@ -58,46 +58,45 @@ class Emojis(commands.Cog):
         if not self.cache:
             await self.updatecache()
 
-        if (int(message.author.id) in list(self.cache)):
-            if self.cache[int(message.author.id)] == True:
-                emojistosend = []
-                foundemojinames = re.findall(
-                    r"((?<=;;).+?(?=;;))", str(message.content))
+        if self.cache.get(message.author.id, None) in [True]:
+            emojistosend = []
+            foundemojinames = re.findall(
+                r"((?<=;).+?(?=;))", str(message.content))
 
-                if foundemojinames:
-                    guildemojinames = {
-                        emoji.name.lower(): emoji.name for emoji in message.guild.emojis}
-                    botemojinames = {
-                        emoji.name.lower(): emoji.name for emoji in self.bot.emojis}
-                    for emojiname in foundemojinames:
-                        found = False
-                        for emoji in guildemojinames:
+            if foundemojinames:
+                guildemojinames = {
+                    emoji.name.lower(): emoji.name for emoji in message.guild.emojis}
+                botemojinames = {
+                    emoji.name.lower(): emoji.name for emoji in self.bot.emojis}
+                for emojiname in foundemojinames:
+                    found = False
+                    for emoji in guildemojinames:
+                        if emoji == emojiname.lower():
+                            foundemoji = discord.utils.get(
+                                message.guild.emojis, name=guildemojinames[emoji])
+                            found = True
+                            break
+                    if not found:
+                        for emoji in botemojinames:
                             if emoji == emojiname.lower():
                                 foundemoji = discord.utils.get(
-                                    message.guild.emojis, name=guildemojinames[emoji])
+                                    self.bot.emojis, name=botemojinames[emoji])
                                 found = True
                                 break
-                        if not found:
-                            for emoji in botemojinames:
-                                if emoji == emojiname.lower():
-                                    foundemoji = discord.utils.get(
-                                        self.bot.emojis, name=botemojinames[emoji])
-                                    found = True
-                                    break
-                        if not found:
-                            pass
-                        else:
-                            if foundemoji:
-                                if not str(foundemoji) in self.whitelist and foundemoji.available:
-                                    emojistosend.append(str(foundemoji))
+                    if not found:
+                        pass
+                    else:
+                        if foundemoji:
+                            if not str(foundemoji) in self.whitelist and foundemoji.available:
+                                emojistosend.append(str(foundemoji))
 
-                    if emojistosend:
-                        if not message.reference:
-                            await message.reply(" ".join(emojistosend), mention_author=False)
-                        else:
-                            msg = await message.channel.fetch_message(message.reference.message_id)
-                            for emoji in emojistosend:
-                                await msg.add_reaction(emoji)
+                if emojistosend:
+                    if not message.reference:
+                        await message.reply(" ".join(emojistosend), mention_author=False)
+                    else:
+                        msg = await message.channel.fetch_message(message.reference.message_id)
+                        for emoji in emojistosend:
+                            await msg.add_reaction(emoji)
 
     @commands.group(name="emojis", aliases=["emoji"], invoke_without_command=True)
     async def _emojis(self, ctx, *, search: Optional[str] = None):
@@ -186,7 +185,7 @@ class Emojis(commands.Cog):
                     await con.execute("INSERT INTO userdata values($1, $2) ON CONFLICT (user_id) DO UPDATE SET emojis = $2 where userdata.user_id = $1", int(ctx.author.id), not emojis[0]["emojis"])
                     mode = not emojis[0]["emojis"]
         await self.updatecache()
-        embed = discord.Embed(title="Success!", description=f"User emoji response `{'on' if mode else 'off'}`", colour=self.bot.good_embed_colour).set_footer(text=f"You can trigger the emoji any time by doing \".<emojiname>\"", icon_url=ctx.author.avatar_url)
+        embed = discord.Embed(title="Success!", description=f"User emoji response `{'on' if mode else 'off'}`", colour=self.bot.good_embed_colour).set_footer(text=f"You can trigger the emoji any time by doing \";<emojiname>;\"", icon_url=ctx.author.avatar.url)
         await ctx.reply(embed=embed, mention_author=False)
         
 def setup(bot):
