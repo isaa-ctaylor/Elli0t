@@ -48,11 +48,10 @@ class Coding(commands.Cog):
                     if index == 0:
                         embed = discord.Embed(
                             title=f"Ran in {resp['language']}", description=f"```{code.language}\n{item}```", colour=self.bot.good_embed_colour)
-                        embeds.append(input(embed, None))
                     else:
                         embed = discord.Embed(
                             description=f"```{code.language}\n{item}```", colour=self.bot.good_embed_colour)
-                        embeds.append(input(embed, None))
+                    embeds.append(input(embed, None))
                 embedpaginator = paginator(
                     ctx, remove_reactions=True, footer=True)
                 embedpaginator.add_reaction("\U000023ea", "first")

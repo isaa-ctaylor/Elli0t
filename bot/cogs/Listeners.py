@@ -191,7 +191,7 @@ class Listeners(commands.Cog):
         await channel.send("test")
     
     async def _check_not_blacklisted(self, ctx):
-        if not str(ctx.author.id) in list(self.bot.blacklist):
+        if str(ctx.author.id) not in list(self.bot.blacklist):
             return True
     
 def setup(bot):

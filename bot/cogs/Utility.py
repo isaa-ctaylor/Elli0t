@@ -139,10 +139,7 @@ class Utility(commands.Cog):
         '''
         Table tennis anyone?
         '''
-        if ctx.invoked_with.lower() == "ping":
-            title = "Pong 🏓"
-        else:
-            title = "Ping 🏓"
+        title = "Pong 🏓" if ctx.invoked_with.lower() == "ping" else "Ping 🏓"
         embed = discord.Embed(
             title=title, colour=self.bot.neutral_embed_colour)
 
@@ -345,11 +342,11 @@ class Utility(commands.Cog):
         Define the given word
         '''
         with ctx.typing():
-            embeds = []
             async with aiohttp.ClientSession() as cs:
                 async with cs.get(f"https://api.dictionaryapi.dev/api/v2/entries/en/{word.replace(' ', '%20')}") as responses:
                     jsonresponse = await responses.json()
             if isinstance(jsonresponse, list):
+                embeds = []
                 for response in jsonresponse:
                     word = response.get("word")
                     phonetics = response.get("phonetics")
@@ -364,10 +361,13 @@ class Utility(commands.Cog):
                             embed = discord.Embed(title=word, colour=0x2F3136)
 
                         for meaning in meanings:
-                            definitions = []
-                            for i, definition in enumerate(meaning["definitions"]):
-                                definitions.append(
-                                    f"{i+1}) {definition['definition']}")
+                            definitions = [
+                                f"{i+1}) {definition['definition']}"
+                                for i, definition in enumerate(
+                                    meaning["definitions"]
+                                )
+                            ]
+
                             embed.add_field(
                                 name=meaning["partOfSpeech"], value="\n".join(definitions))
 
@@ -395,12 +395,12 @@ class Utility(commands.Cog):
             text = f"```{paste.paste_syntax or ''}\n{paste.paste_content}```"
             embed = discord.Embed(
                 title=paste.paste_id, description=text, colour=discord.Colour.teal())
-            await ctx.reply(embed=embed, mention_author=False)
         else:
             paste = await self.mystbin.post(text[1].strip("\n"), syntax=text[0])
             embed = discord.Embed(
                 title=paste.paste_id, description=f"```\n{paste.url}```", colour=discord.Colour.teal())
-            await ctx.reply(embed=embed, mention_author=False)
+
+        await ctx.reply(embed=embed, mention_author=False)
     
     @commands.command(name="lengthen")
     async def _lengthen(self, ctx, *, url):
@@ -464,8 +464,12 @@ class Utility(commands.Cog):
         See details on your/someone elses current spotify song
         '''
         member = member or ctx.author
-        
-        if not any([True for activity in member.activities if isinstance(activity, discord.Spotify)]):
+
+        if not any(
+            True
+            for activity in member.activities
+            if isinstance(activity, discord.Spotify)
+        ):
             return await ctx.error(f"{'That person is' if member != ctx.author else 'You are'} not listening to anything!", reply=True)
         else:
             for activity in member.activities:

@@ -43,10 +43,7 @@ class Chatbot(commands.Cog):
         self.chatbot = Cleverbot(os.getenv("CLEVERBOT"), context=DictContext())
 
     def is_chatting(self, author):
-        if author in self.chatting:
-            return True
-        else:
-            return False
+        return author in self.chatting
 
     @commands.command(name="chat", aliases=["cb"])
     async def _chat(self, ctx, *, text: str):

@@ -39,15 +39,11 @@ class helpcommand(commands.HelpCommand):
         ctx = self.context
         thehelp = await self.get_bot_help(mapping, ctx)
 
-        if isinstance(thehelp, list):
-            embeds = [*thehelp]
-        else:
-            embeds = thehelp
-        
+        embeds = [*thehelp] if isinstance(thehelp, list) else thehelp
         for cog in mapping:
             if cog and mapping[cog] and await self.include_cog(cog):
                 coghelp = await self.get_cog_help(cog, ctx)
-                
+
                 for page in coghelp:
                     embeds.append(page)
 
@@ -57,21 +53,14 @@ class helpcommand(commands.HelpCommand):
         ctx = self.context
         thehelp = await self.get_cog_help(cog, ctx)
 
-        if isinstance(thehelp, list):
-            embeds = [*thehelp]
-        else:
-            embeds = thehelp
-            
+        embeds = [*thehelp] if isinstance(thehelp, list) else thehelp
         await self.send_the_help(ctx, embeds)
 
     async def send_group_help(self, group):
         ctx = self.context
         thehelp = await self.get_group_help(group, ctx)
         if isinstance(thehelp, list):
-            if len(thehelp) == 1:
-                embeds = thehelp[-1]
-            else:
-                embeds = [*thehelp]
+            embeds = thehelp[-1] if len(thehelp) == 1 else [*thehelp]
         else:
             embeds = thehelp
 
@@ -83,28 +72,36 @@ class helpcommand(commands.HelpCommand):
         await self.send_the_help(ctx, await self.get_command_help(command))
 
     async def get_bot_help(self, mapping, ctx):
-        pages = {}
+        pages = {
+            str(
+                cog.qualified_name.capitalize()
+                if cog.qualified_name
+                else "No name"
+            ): str(
+                cog.description.capitalize()
+                if cog.description
+                else "No description"
+            )
+            for cog in mapping
+            if cog and await self.include_cog(cog)
+        }
 
-        for cog in mapping:
-            if cog and await self.include_cog(cog):
-                pages[str(cog.qualified_name.capitalize() if cog.qualified_name else "No name")] = str(
-                    cog.description.capitalize() if cog.description else "No description")
 
         pages = {b: textwrap.shorten(
             pages[b], width=51, break_long_words=True, placeholder="...") for b in sorted(pages)}
-        
+
         keys = [list(pages)[n:n+6] for n in range(0, len(list(pages)), 6)]
         listofsmalldescriptions = []
         for i in keys:
-            temp = {}  
-            for key in i:
-                temp[key] = pages[key]
+            temp = {key: pages[key] for key in i}
             listofsmalldescriptions.append(temp)
-        
+
         for index, page in enumerate(listofsmalldescriptions):
-            listofsmalldescriptions[index] = (
-                "\n".join([f"{i}: {page[i]}" for i in page])).replace("`", "\u200b`\u200b")
-        
+            listofsmalldescriptions[index] = "\n".join(
+                f"{i}: {page[i]}" for i in page
+            ).replace("`", "\u200b`\u200b")
+
+
         result = []
 
         for item, i in enumerate(listofsmalldescriptions):
@@ -118,24 +115,27 @@ class helpcommand(commands.HelpCommand):
         return result
 
     async def get_cog_help(self, cog, ctx):
-        pages = {}
-        for command in cog.get_commands():
-            pages[str(command.name.capitalize() if command.name else "No name")] = str(
-                command.help.capitalize() if command.help else "No description")
+        pages = {
+            str(command.name.capitalize() if command.name else "No name"): str(
+                command.help.capitalize() if command.help else "No description"
+            )
+            for command in cog.get_commands()
+        }
+
         pages = {b: textwrap.shorten(
             pages[b], width=51, break_long_words=True, placeholder="...") for b in sorted(pages)}
-        
+
         keys = [list(pages)[n:n+6] for n in range(0, len(list(pages)), 6)]
         listofsmalldescriptions = []
         for i in keys:
-            temp = {}  
-            for key in i:
-                temp[key] = pages[key]
+            temp = {key: pages[key] for key in i}
             listofsmalldescriptions.append(temp)
 
         for index, page in enumerate(listofsmalldescriptions):
-            listofsmalldescriptions[index] = ("\n".join(
-                [f"{i}: {page[i]}" for i in page])).replace("`", "\u200b`\u200b")
+            listofsmalldescriptions[index] = "\n".join(
+                f"{i}: {page[i]}" for i in page
+            ).replace("`", "\u200b`\u200b")
+
 
         result = []
 
@@ -149,55 +149,57 @@ class helpcommand(commands.HelpCommand):
         return result
 
     async def get_group_help(self, group, ctx):
-        if await self.include_cog(group.cog):
-            pages = {}
-            for command in group.commands:
-                pages[str(command.name.capitalize() if command.name else "No name")] = str(
-                    command.help.capitalize() if command.help else "No description")
-            pages = {b: textwrap.shorten(
-                pages[b], width=51, break_long_words=True, placeholder="...") for b in sorted(pages)}
-            
-            keys = [list(pages)[n:n+6] for n in range(0, len(list(pages)), 6)]
-            listofsmalldescriptions = []
-            for i in keys:
-                temp = {}  
-                for key in i:
-                    temp[key] = pages[key]
-                listofsmalldescriptions.append(temp)
-            
-            for index, page in enumerate(listofsmalldescriptions):
-                listofsmalldescriptions[index] = ("\n".join([f"{i}: {page[i]}" for i in page])).replace("`", "\u200b`\u200b")
-
-            result = []
-
-            for item, i in enumerate(listofsmalldescriptions):
-                if item == 0:
-                    result.append(input(discord.Embed(title=group.name.capitalize() if group.name else "Help", url="https://bit.ly/Elli0t",
-                                                description=f"```\n{self.get_command_signature(group)}```\n{group.help.capitalize() if group.help else 'No help'}\n```yaml\n{i}```", colour=self.context.bot.neutral_embed_colour).set_footer(text=f"Type {self.context.clean_prefix}help <command> for more help on a command", icon_url=ctx.author.avatar.url), None))
-                else:
-                    result.append(input(discord.Embed(title=group.name.capitalize() if group.name else "Help", url="https://bit.ly/Elli0t",
-                                                description=f"```yaml\n{i}```", colour=self.context.bot.neutral_embed_colour).set_footer(text=f"Type {self.context.clean_prefix}help <command> for more help on a command", icon_url=ctx.author.avatar.url), None))
-            return result
-        else:
+        if not await self.include_cog(group.cog):
             return await self.command_not_found(group.name)
+        pages = {
+            str(command.name.capitalize() if command.name else "No name"): str(
+                command.help.capitalize() if command.help else "No description"
+            )
+            for command in group.commands
+        }
+
+        pages = {b: textwrap.shorten(
+            pages[b], width=51, break_long_words=True, placeholder="...") for b in sorted(pages)}
+
+        keys = [list(pages)[n:n+6] for n in range(0, len(list(pages)), 6)]
+        listofsmalldescriptions = []
+        for i in keys:
+            temp = {key: pages[key] for key in i}
+            listofsmalldescriptions.append(temp)
+
+        for index, page in enumerate(listofsmalldescriptions):
+            listofsmalldescriptions[index] = "\n".join(
+                f"{i}: {page[i]}" for i in page
+            ).replace("`", "\u200b`\u200b")
+
+
+        result = []
+
+        for item, i in enumerate(listofsmalldescriptions):
+            if item == 0:
+                result.append(input(discord.Embed(title=group.name.capitalize() if group.name else "Help", url="https://bit.ly/Elli0t",
+                                            description=f"```\n{self.get_command_signature(group)}```\n{group.help.capitalize() if group.help else 'No help'}\n```yaml\n{i}```", colour=self.context.bot.neutral_embed_colour).set_footer(text=f"Type {self.context.clean_prefix}help <command> for more help on a command", icon_url=ctx.author.avatar.url), None))
+            else:
+                result.append(input(discord.Embed(title=group.name.capitalize() if group.name else "Help", url="https://bit.ly/Elli0t",
+                                            description=f"```yaml\n{i}```", colour=self.context.bot.neutral_embed_colour).set_footer(text=f"Type {self.context.clean_prefix}help <command> for more help on a command", icon_url=ctx.author.avatar.url), None))
+        return result
 
     async def get_command_help(self, command):
-        if await self.include_cog(command.cog):
-            usagestring = self.get_command_signature(command)
-            embed = discord.Embed(title=command.name.capitalize() if command.name else "Help", url="http://bit.ly/Elli0t",
-                                    description=f"```\n{usagestring}```\n{command.help or 'No help provided'}", colour=self.context.bot.neutral_embed_colour)
-            cooldown = command._buckets._cooldown
-            if cooldown:
-                embed.add_field(
-                    name="Cooldown", value=f"```yaml\n{cooldown.rate} times per {humanize.precisedelta(datetime.timedelta(seconds=cooldown.per))}```" if cooldown else '```yaml\nNone```')
-            embed.add_field(
-                name="Runnable?", value="```yaml\nYes```" if command in await self.filter_commands([command]) else '```yaml\nNo```')
-            embed.add_field(
-                name="Category", value=f"```yaml\n{command.cog.__class__.__name__}```"
-            )
-            return embed
-        else:
+        if not await self.include_cog(command.cog):
             return await self.command_not_found(command.name)
+        usagestring = self.get_command_signature(command)
+        embed = discord.Embed(title=command.name.capitalize() if command.name else "Help", url="http://bit.ly/Elli0t",
+                                description=f"```\n{usagestring}```\n{command.help or 'No help provided'}", colour=self.context.bot.neutral_embed_colour)
+        cooldown = command._buckets._cooldown
+        if cooldown:
+            embed.add_field(
+                name="Cooldown", value=f"```yaml\n{cooldown.rate} times per {humanize.precisedelta(datetime.timedelta(seconds=cooldown.per))}```" if cooldown else '```yaml\nNone```')
+        embed.add_field(
+            name="Runnable?", value="```yaml\nYes```" if command in await self.filter_commands([command]) else '```yaml\nNo```')
+        embed.add_field(
+            name="Category", value=f"```yaml\n{command.cog.__class__.__name__}```"
+        )
+        return embed
 
     async def include_cog(self, cog):
         return (cog.qualified_name not in ["Owner", "Dev", "Jishaku", "Statcord"]) if self.context.author.id != self.context.bot.owner_id else True

@@ -121,29 +121,35 @@ class Errors(commands.Cog):
             await ctx.error(str(e))
             
 
-    @commands.is_owner()            
+    @commands.is_owner()
     @commands.group(name="errors", aliases=["error"])
     async def _errors(self, ctx):
-        if not ctx.invoked_subcommand:
-            async with self.bot.db.pool.acquire() as con:
-                errordata = await con.fetch("SELECT * FROM errors")
-                
-            if not errordata:
-                return await ctx.embed(title="All clear!", description="Looks like there is no errors at the moment!", colour=self.bot.good_embed_colour, reply=True)
-            
-            else:
-                errordata = [dict(record) for record in errordata]
-                
-                embed = discord.Embed(title="Errors", colour=self.bot.bad_embed_colour)
-                
-                commanderrordict = {}
-                for error in errordata:
-                    commanderrordict[error["command"]] = [*commanderrordict.get(error["command"], []), str(error["id"])]
-                    
-                for command in commanderrordict:
-                    embed.add_field(name=command, value=", ".join([f"`{error}`" for error in commanderrordict[command]]))
-                    
-                await ctx.reply(embed=embed, mention_author=False)
+        if ctx.invoked_subcommand:
+            return
+        async with self.bot.db.pool.acquire() as con:
+            errordata = await con.fetch("SELECT * FROM errors")
+
+        if not errordata:
+            return await ctx.embed(title="All clear!", description="Looks like there is no errors at the moment!", colour=self.bot.good_embed_colour, reply=True)
+
+        errordata = [dict(record) for record in errordata]
+
+        embed = discord.Embed(title="Errors", colour=self.bot.bad_embed_colour)
+
+        commanderrordict = {}
+        for error in errordata:
+            commanderrordict[error["command"]] = [*commanderrordict.get(error["command"], []), str(error["id"])]
+
+        for command in commanderrordict:
+            embed.add_field(
+                name=command,
+                value=", ".join(
+                    f"`{error}`" for error in commanderrordict[command]
+                ),
+            )
+
+
+        await ctx.reply(embed=embed, mention_author=False)
     
     @commands.is_owner()        
     @_errors.command(name="view")

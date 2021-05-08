@@ -99,53 +99,55 @@ class Dev(commands.Cog):
         '''
         The base command for the dev cog, gives system info if not invoked with a subcommand
         '''
-        if not ctx.invoked_subcommand:
-            embed = discord.Embed(title="System info",
-                                  colour=discord.Colour.teal())
+        if ctx.invoked_subcommand:
+            return
 
-            embed.add_field(name=f"Discord.py version",
-                            value=f"```\n{discord.__version__}```", inline=True)
+        embed = discord.Embed(title="System info",
+                              colour=discord.Colour.teal())
 
-            embed.add_field(name=f"Python version",
-                            value=f"```\n{sys.version}```", inline=False)
+        embed.add_field(name=f"Discord.py version",
+                        value=f"```\n{discord.__version__}```", inline=True)
 
-            embed.add_field(name=f"Platform info", value=f"```\n{sys.platform}```".replace('\n', ''), inline=True)
+        embed.add_field(name=f"Python version",
+                        value=f"```\n{sys.version}```", inline=False)
 
-            if psutil:
-                try:
-                    proc = psutil.Process()
+        embed.add_field(name=f"Platform info", value=f"```\n{sys.platform}```".replace('\n', ''), inline=True)
 
-                    with proc.oneshot():
-                        mem = proc.memory_full_info()
+        if psutil:
+            try:
+                proc = psutil.Process()
 
-                        embed.add_field(
-                            name=f"Physical memory", value=f"```\n{humanise.naturalsize(mem.rss)}```", inline=True)
+                with proc.oneshot():
+                    mem = proc.memory_full_info()
 
-                        embed.add_field(
-                            name=f"Virtual memory", value=f"```\n{humanise.naturalsize(mem.vms)}```", inline=True)
-                        
-                        embed.add_field(
-                            name=f"Process memory", value=f"```\n{humanise.naturalsize(mem.uss)}```", inline=True)
+                    embed.add_field(
+                        name=f"Physical memory", value=f"```\n{humanise.naturalsize(mem.rss)}```", inline=True)
 
-                        name = proc.name()
-                        pid = proc.pid
-                        thread_count = proc.num_threads()
-                        
-                        embed.add_field(name=f"PID", value=f"```\n{pid}```", inline=True)
-                        embed.add_field(name=f"Process name", value=f"```\n{name}```", inline=True)
-                        embed.add_field(name=f"Thread count", value=f"```\n{thread_count}```", inline=True)
-                        
-                except psutil.AccessDenied:
-                    pass
-                
-            embed.add_field(name=f"Guilds", value=f"```\n{len(self.bot.guilds)}```", inline=True)
-            embed.add_field(name=f"Users", value=f"```\n{len(self.bot.users)}```", inline=True)
-            
-            embed.add_field(name=f"Message cache", value=f"```\n{self.bot._connection.max_messages}```", inline=True)
-            
-            embed.add_field(name=f"Latency", value=f"```\n{round(self.bot.latency * 1000, 2)}ms```", inline=True)
-            
-            await ctx.reply(embed=embed, mention_author=False)
+                    embed.add_field(
+                        name=f"Virtual memory", value=f"```\n{humanise.naturalsize(mem.vms)}```", inline=True)
+
+                    embed.add_field(
+                        name=f"Process memory", value=f"```\n{humanise.naturalsize(mem.uss)}```", inline=True)
+
+                    name = proc.name()
+                    pid = proc.pid
+                    thread_count = proc.num_threads()
+
+                    embed.add_field(name=f"PID", value=f"```\n{pid}```", inline=True)
+                    embed.add_field(name=f"Process name", value=f"```\n{name}```", inline=True)
+                    embed.add_field(name=f"Thread count", value=f"```\n{thread_count}```", inline=True)
+
+            except psutil.AccessDenied:
+                pass
+
+        embed.add_field(name=f"Guilds", value=f"```\n{len(self.bot.guilds)}```", inline=True)
+        embed.add_field(name=f"Users", value=f"```\n{len(self.bot.users)}```", inline=True)
+
+        embed.add_field(name=f"Message cache", value=f"```\n{self.bot._connection.max_messages}```", inline=True)
+
+        embed.add_field(name=f"Latency", value=f"```\n{round(self.bot.latency * 1000, 2)}ms```", inline=True)
+
+        await ctx.reply(embed=embed, mention_author=False)
     
     @commands.is_owner()
     @commands.command(name="eval")
