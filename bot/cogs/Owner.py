@@ -24,18 +24,24 @@ SOFTWARE.
 
 import os
 import difflib
+from dotenv import load_dotenv
 
 import discord
 from discord.ext import commands
 from jishaku.functools import executor_function
 import json
+import aiohttp
+from discord.ext.commands.cooldowns import BucketType
 
 dirname = os.path.dirname(__file__)
 filename = os.path.join(dirname, "../blacklist.json")
 
+load_dotenv()
 
 class Owner(commands.Cog):
-    '''Commands just for the owner of the bot'''
+    '''
+    Commands just for the owner of the bot
+    '''
 
     def __init__(self, bot):
         self.bot = bot
@@ -44,9 +50,11 @@ class Owner(commands.Cog):
             "jishaku"
         ]
 
-    async def cog_check(self, ctx: commands.Context):
-        return await self.bot.is_owner(ctx.author)
-
+    def _trusted_check(ctx):
+        if ctx.author.id in [718087881087910018, 589156304841605121]:
+            return True
+        raise commands.NotOwner("You must be owner to use this command!")
+    
     async def load_cog(self, cog: str) -> discord.Embed:
 
         try:
@@ -75,7 +83,7 @@ class Owner(commands.Cog):
         finally:
             self.cogs.sort()
             return embed
-
+    
     async def unload_cog(self, cog: str) -> discord.Embed:
         try:
             self.bot.unload_extension(cog)
@@ -94,6 +102,7 @@ class Owner(commands.Cog):
             self.cogs.sort()
             return embed
 
+    @commands.is_owner()
     @commands.command(name="load")
     async def _load(self, ctx: commands.Context, *, cog: str):
         '''
@@ -105,6 +114,7 @@ class Owner(commands.Cog):
 
         await ctx.send(embed=await self.load_cog(cog))
 
+    @commands.is_owner()
     @commands.command(name="reload")
     async def _reload(self, ctx: commands.Context, *, cog: str = None):
         '''
@@ -137,6 +147,7 @@ class Owner(commands.Cog):
                                   description=cogs, colour=colour)
             await ctx.send(embed=embed)
 
+    @commands.is_owner()
     @commands.command(name="unload")
     async def _unload(self, ctx, *, cog):
         if cog in self.whitelist or cog.startswith("cogs."):
@@ -144,6 +155,7 @@ class Owner(commands.Cog):
         else:
             await ctx.send(embed=await self.unload_cog(f"cogs.{cog}"))
 
+    @commands.is_owner()
     @commands.command(name="prefixless")
     async def _prefixless(self, ctx, onoroff: str = None):
         if str(onoroff).lower() in ["true", "yes", "1", "on"]:
@@ -155,7 +167,8 @@ class Owner(commands.Cog):
         elif not onoroff:
             self.bot.prefixless = not self.bot.prefixless
             await ctx.message.add_reaction("👍")
-            
+
+    @commands.is_owner()        
     @commands.command(name="restart")
     async def _restart(self, ctx):
         await ctx.send(embed=discord.Embed(title="Restarting", description="Be back soon!", colour=self.bot.good_embed_colour))
@@ -176,25 +189,32 @@ class Owner(commands.Cog):
         with open(filename, "w") as f:
             json.dump(data, f, indent=4)
     
+    @commands.is_owner()
     @commands.command(name="blacklist")
     async def _blacklist(self, ctx, user: discord.User, *, reason: str = None):
         if not user.id == self.bot.owner_id:
             await self._do_blacklist(user.id, reason)
             return await ctx.message.add_reaction("\U0001f44d")
         return await ctx.message.add_reaction("\U0000274c")
-    
-    @_load.error
-    @_reload.error
-    @_unload.error
-    @_restart.error
-    async def _NotOwner(self, ctx, error):
-        if isinstance(error, discord.ext.commands.errors.CheckFailure):
-            error_embed = discord.Embed(
-                title="Error!", description="You need to be owner to use this command!", colour=self.bot.bad_embed_colour)
-            await ctx.send(embed=error_embed)
-        else:
-            raise error
 
+    @commands.cooldown(1, 60, BucketType.user)
+    @commands.check(_trusted_check)
+    @commands.command(name="cdn")
+    async def _cdn(self, ctx):
+        with ctx.typing():
+            if ctx.message.attachments:
+                if not ctx.message.attachments[0].size > 99614720:
+                    imgbytes = await ctx.message.attachments[0].read()
+                    async with aiohttp.ClientSession() as cs:
+                        async with cs.post("https://isaac.likes-throwing.rocks/upload", data={"image": imgbytes, "token": os.getenv("sxcu"), "noembed": "True", "og_properties": '{"discord_hide_url": "True"}'}) as r:
+                            readdata = await r.json()
+
+                    embed = discord.Embed(description=f'[`{readdata["url"]}`]({readdata["url"]})', colour=self.bot.good_embed_colour)
+                    await ctx.send(embed=embed)
+                else:
+                    await ctx.send("too big smh")
+            else:
+                await ctx.send("hmm")
 
 def setup(bot):
     bot.add_cog(Owner(bot))
