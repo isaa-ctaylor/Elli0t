@@ -73,26 +73,26 @@ class Reddit(commands.Cog):
                             post["data"]["title"], url=f"https://www.reddit.com{post['data']['permalink']}", colour=discord.Colour.teal())
                         embed.set_image(url=post["data"]["url"])
                         embed.set_footer(
-                            text=f"Uploaded by u/{post['data']['author']} | {int(post['data']['ups']) - int(post['data']['downs'])} upvotes", icon_url=ctx.author.avatar_url)
+                            text=f"Uploaded by u/{post['data']['author']} | {int(post['data']['ups']) - int(post['data']['downs'])} upvotes", icon_url=ctx.author.avatar.url)
                         embed.set_author(
                             name=f"r/{subred}", icon_url="https://external-preview.redd.it/iDdntscPf-nfWKqzHRGFmhVxZm4hZgaKe5oyFws-yzA.png?auto=webp&s=38648ef0dc2c3fce76d5e1d8639234d8da0152b2")
                         await ctx.reply(embed=embed, mention_author=False)
                     else:
                         embed = discord.Embed(
-                            title="Error!", description=f"```diff\n- Failed getting a post from {subreddit}! (This may be because the post was a video, which is unsupported)```", colour=self.bot.bad_embed_colour).set_footer(text="This could be because the subreddit doesn't exist, or is private", icon_url=ctx.author.avatar_url)
+                            title="Error!", description=f"```diff\n- Failed getting a post from {subreddit}! (This may be because the post was a video, which is unsupported)```", colour=self.bot.bad_embed_colour).set_footer(text="This could be because the subreddit doesn't exist, or is private", icon_url=ctx.author.avatar.url)
                         await ctx.reply(embed=embed, mention_author=False)
                 else:
                     embed = discord.Embed(
-                        title="Error!", description=f"```diff\n- Couldn't find anything matching {subreddit}!```", colour=self.bot.bad_embed_colour).set_footer(text="This could be because the subreddit doesn't exist, or is private", icon_url=ctx.author.avatar_url)
+                        title="Error!", description=f"```diff\n- Couldn't find anything matching {subreddit}!```", colour=self.bot.bad_embed_colour).set_footer(text="This could be because the subreddit doesn't exist, or is private", icon_url=ctx.author.avatar.url)
                     await ctx.reply(embed=embed, mention_author=False)
 
             except Exception as e:
                 if isinstance(e, KeyError):
                     embed = discord.Embed(
-                        title="Error!", description=f"```diff\n- Couldn't find anything matching {subreddit}!```", colour=self.bot.bad_embed_colour).set_footer(text="This could be because the subreddit doesn't exist, or is private", icon_url=ctx.author.avatar_url)
+                        title="Error!", description=f"```diff\n- Couldn't find anything matching {subreddit}!```", colour=self.bot.bad_embed_colour).set_footer(text="This could be because the subreddit doesn't exist, or is private", icon_url=ctx.author.avatar.url)
                     await ctx.reply(embed=embed, mention_author=False)
                 else:
-                    await ctx.send(str(e))
+                    await ctx.reply(str(e))
                     embed = discord.Embed(
                         title="Error!", description=f"```diff\n- There was an error, please try again later```", colour=self.bot.bad_embed_colour)
                     await ctx.reply(embed=embed, mention_author=False)
