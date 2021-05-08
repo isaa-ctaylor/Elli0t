@@ -129,6 +129,7 @@ bot = Elli0t(
        "cogs.Links",
        "cogs.Listeners",
     #    "cogs.Moderation",
+       "cogs.Music",
        "cogs.Owner",
        "cogs.Images",
        "cogs.Chatbot",
