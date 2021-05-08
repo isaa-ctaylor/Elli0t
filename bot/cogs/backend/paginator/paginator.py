@@ -20,6 +20,7 @@ class paginator(object):
         self.footer = kwargs.pop("footer", False)
         self.remove_reactions = True
         self.two_way_reactions = kwargs.pop("two_way_reactions", True)
+        self.msg = None
         self.clear()
 
     def clear(self):
@@ -108,13 +109,13 @@ class paginator(object):
         if embed:
             await msg.edit(embed=embed, file=file)
         else:
-            await msg.edit(embed=(self.embeds[self.current_page].content.set_footer(text=f"{self.current_page + 1}/{len(self.embeds)}", icon_url=user.avatar_url)) if self.footer else self.embeds[self.current_page].content)
+            await msg.edit(embed=(self.embeds[self.current_page].content.set_footer(text=f"{self.current_page + 1}/{len(self.embeds)}", icon_url=user.avatar.url)) if self.footer else self.embeds[self.current_page].content)
 
     async def send(self, embeds: List[input], send_to: Optional[Union[commands.Context, discord.Member, discord.User]] = None):
         self.embeds = embeds
         
         def check(reaction, user):
-            return user == wait_for and reaction.message.id == msg.id and str(reaction.emoji) in self.emojis
+            return user == wait_for and reaction.message.id == self.msg.id and str(reaction.emoji) in [*self.emojis, "\U000023f9"]
     
         send_to = send_to or self.ctx
         
@@ -125,46 +126,43 @@ class paginator(object):
         
         if len(self.embeds) == 1:
             try:
-                m = await send_to.send(embed=self.embeds[0].content, file=self.embeds[0].picture)
-                await m.add_reaction("\U000023f9")
-                r, u = await self.wait_for(m, check, None)
+                self.msg = await send_to.send(embed=self.embeds[0].content, file=self.embeds[0].picture)
+                await self.msg.add_reaction("\U000023f9")
+                r, u = await self.bot.wait_for("reaction_add", check=check)
                 if str(r.emoji) == "\U000023f9":
-                    await m.delete()
+                    await self.msg.delete()
                     return
             except Exception as e:
-                await send_to.send(e)
-                return
+                await self.ctx.send(e)
         
         self.current_page = 0
 
-        
-
         if self.footer:
             self.embeds[0].content.set_footer(
-                text=f"{self.current_page + 1}/{len(self.embeds)}", icon_url=wait_for.avatar_url)
+                text=f"{self.current_page + 1}/{len(self.embeds)}", icon_url=wait_for.avatar.url)
 
-        msg = await send_to.send(embed=self.embeds[0].content, file=self.embeds[0].picture)
+        self.msg = await send_to.send(embed=self.embeds[0].content, file=self.embeds[0].picture)
 
         for emoji in self.emojis:
-            await msg.add_reaction(emoji)
+            await self.msg.add_reaction(emoji)
             await asyncio.sleep(0.25)
 
-        msg = await msg.channel.fetch_message(msg.id)
+        self.msg = await self.msg.channel.fetch_message(self.msg.id)
 
         navigating = True
 
         while navigating:
             if self.timeout > 0:
                 try:
-                    reaction, user = await self.wait_for(msg, check, self.timeout)
+                    reaction, user = await self.wait_for(self.msg, check, self.timeout)
                 except (TypeError, asyncio.TimeoutError):
-                    await self.clear_msg_reactions(msg)
+                    await self.clear_msg_reactions(self.msg)
                     navigating = False
             else:
                 try:
-                    reaction, user = await self.wait_for(msg, check, None)
+                    reaction, user = await self.wait_for(self.msg, check, None)
                 except (TypeError, asyncio.TimeoutError):
-                    await self.clear_msg_reactions(msg)
+                    await self.clear_msg_reactions(self.msg)
                     navigating = False
 
             try:
@@ -176,21 +174,21 @@ class paginator(object):
             else:
                 if command == "first":
                     self.current_page = 0
-                    await self.edit(msg, reaction.emoji, user)
+                    await self.edit(self.msg, reaction.emoji, user)
 
                 elif command == "back":
                     if self.current_page == 0:
                         pass
                     else:
                         self.current_page -= 1
-                    await self.edit(msg, reaction.emoji, user)
+                    await self.edit(self.msg, reaction.emoji, user)
 
                 elif command in ["lock", "clear", "stop"]:
-                    await self.clear_msg_reactions(msg)
+                    await self.clear_msg_reactions(self.msg)
                     navigating = False
 
                 elif command == "delete":
-                    await msg.delete()
+                    await self.msg.delete()
                     await self.ctx.message.add_reaction("\U00002705")
                     navigating = False
 
@@ -199,16 +197,16 @@ class paginator(object):
                         pass
                     else:
                         self.current_page += 1
-                    await self.edit(msg, reaction.emoji, user)
+                    await self.edit(self.msg, reaction.emoji, user)
 
                 elif command == "last":
                     self.current_page = len(self.embeds) - 1
-                    await self.edit(msg, reaction.emoji, user)
+                    await self.edit(self.msg, reaction.emoji, user)
 
                 elif command == "info":
                     embed = discord.Embed(title="Info", description="Seems like you stumbled upon the help page! Use the arrows below to move around the menu!",
-                                          colour=self.bot.neutral_embed_colour).set_footer(text=f"Requested by {wait_for.name}#{wait_for.discriminator}", icon_url=user.avatar_url)
-                    await self.edit(msg, emoji, user, embed)
+                                          colour=self.bot.neutral_embed_colour).set_footer(text=f"Requested by {wait_for.name}#{wait_for.discriminator}", icon_url=user.avatar.url)
+                    await self.edit(self.msg, emoji, user, embed)
 
                 elif command == "number":
                     def msgcheck(m):
@@ -220,9 +218,9 @@ class paginator(object):
 
                     self.current_page = int(m.content) - 1
                     await choice_msg.delete()
-                    await self.edit(msg, reaction.emoji, user)
+                    await self.edit(self.msg, reaction.emoji, user)
 
                 elif command == "delete":
-                    await msg.delete()
+                    await self.msg.delete()
                     await self.ctx.message.add_reaction("\U0001f44d")
                     navigating = False
