@@ -54,9 +54,10 @@ class Google(commands.Cog):
                 websites = [results.websites[n:n+3]
                             for n in range(0, len(results.websites), 3)]
                 for page in websites:
-                    websitestring = ""
-                    for site in page:
-                        websitestring += f"[**{discord.utils.escape_markdown(site.title)}**]({site.link})\n{discord.utils.escape_markdown(str(site.description))}\n\n"
+                    websitestring = "".join(
+                        f"[**{discord.utils.escape_markdown(site.title)}**]({site.link})\n{discord.utils.escape_markdown(str(site.description))}\n\n"
+                        for site in page
+                    )
 
                     websitelist.append(websitestring)
 
@@ -108,7 +109,7 @@ class Google(commands.Cog):
                     '\n'), colour=self.bot.neutral_embed_colour)
                 if picture:
                     embed.set_image(url=f"attachment://{picture.filename}")
-            
+
             elif results.featured_snippet:
                 snippet_string = ""
                 if results.featured_snippet.title:
@@ -117,10 +118,10 @@ class Google(commands.Cog):
                     snippet_string += f"{results.featured_snippet.description}\n"
                 if results.featured_snippet.link["name"] and results.featured_snippet.link["href"]:
                     snippet_string += f"[{results.featured_snippet.link['name']}]({results.featured_snippet.link['href']})\n"
-                
+
                 embed = discord.Embed(title=f"Search results for {query}", description=snippet_string.strip(
                     '\n'), colour=self.bot.neutral_embed_colour)
-            
+
             if embed:
                 results = []
                 if websitelist:

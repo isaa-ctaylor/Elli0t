@@ -57,43 +57,31 @@ class Maths(commands.Cog):
         user_vars = {}
         if ";" in expression:
             parts = expression.split(";")
-            if "," in parts[0]:
-                variables = parts[0].split(",")
-            else:
-                variables = [parts[0]]
-            
-
+            variables = parts[0].split(",") if "," in parts[0] else [parts[0]]
             for var in variables:
                 thing1, thing2 = var.split("=")
                 user_vars[thing1] = thing2
 
             expression = parts[-1]
-                
+
         try:
             answer = await self._do_solve(expression, user_vars)
-            
+
             embed = discord.Embed(colour=self.bot.good_embed_colour)
             embed.add_field(name="Input", value=f"```\n{expression}```")
             embed.add_field(name="Output", value=f"```\n{answer}```")
         except Exception as e:
+            embed = discord.Embed(
+                title="Error!", colour=self.bot.bad_embed_colour)
+            embed.add_field(name="Input", value=f"```\n{expression.strip()}```")
             if isinstance(e, OverflowError):
-                embed = discord.Embed(
-                    title="Error!", colour=self.bot.bad_embed_colour)
-                embed.add_field(name="Input", value=f"```\n{expression.strip()}```")
                 embed.add_field(
                     name="Error", value=f"```\nOverflowError```")
             else:
                 if isinstance(e, AttributeError):
-                    embed = discord.Embed(
-                        title="Error!", colour=self.bot.bad_embed_colour)
-                    embed.add_field(name="Input", value=f"```\n{expression.strip()}```")
                     embed.add_field(
                         name="Error", value=f"```\n{str(e).split(' in')[0]}```")
                 else:
-                    embed = discord.Embed(
-                        title="Error!", colour=self.bot.bad_embed_colour)
-                    embed.add_field(
-                        name="Input", value=f"```\n{expression.strip()}```")
                     embed.add_field(
                         name="Error", value=f"```\n{str(e).strip()}```")
         finally:
