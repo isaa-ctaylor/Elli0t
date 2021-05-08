@@ -23,24 +23,57 @@ SOFTWARE.
 """
 
 import functools
+import random
 import time
 from collections import namedtuple
 from io import BytesIO
 
 import aiohttp
-import asyncio
 import discord
 import googletrans
-from colour import Color as Colour
-from discord.ext import commands, tasks
+from discord.ext import commands
 from googletrans.constants import LANGUAGES
 from jishaku.codeblocks import codeblock_converter
 from jishaku.functools import executor_function
 from mystbin import Client
-from PIL import Image
+from PIL import Image, ImageColor
 from requests.utils import quote
+import re
+import contextlib
 
-from .backend.paginator.paginator import paginator
+from .backend.paginator.paginator import paginator, input
+
+
+class ColourConverter(commands.Converter):
+    '''
+    Custom colour converter, credit goes to kal#1806 https://github.com/platform-discord/travis-bott/blob/432b1b47f1380ef48b3a0aab3e23073147ba0a14/cogs/meta.py#L68-L94
+    '''
+    async def convert(self, ctx, argument: str):
+        with contextlib.suppress(AttributeError):
+            RGB_REGEX = re.compile(r"\(?(\d+),?\s*(\d+),?\s*(\d+)\)?")
+            match = RGB_REGEX.match(argument)
+            check = all(0 <= int(x) <= 255 for x in match.groups())
+
+        if match and check:
+            rgb = [int(x) for x in match.groups()]
+            return discord.Colour.from_rgb(*rgb)
+
+        converter = commands.ColourConverter()
+
+        try:
+            result = await converter.convert(ctx, argument)
+        except commands.BadColourArgument:
+            try:
+                colour = ImageColor.getrgb(argument)
+                result = discord.Colour.from_rgb(*colour)
+            except ValueError:
+                result = None
+
+        if result:
+            return result
+
+        raise commands.BadArgument(
+            f"Couldn't find a colour value matching `{argument}`.")
 
 morse = {
     "a": "._",
@@ -84,7 +117,7 @@ morse = {
 
 acolour = namedtuple("colour", ["red", "green", "blue"])
 
-reminder = namedtuple("reminder", ["created", "expires", "owner", "channel", "message", "og_link"])
+afkstatus = namedtuple("afk", ["messageid", "reason"])
 
 class InvalidColour(Exception):
     def __init__(self, colour):
@@ -133,7 +166,7 @@ class Utility(commands.Cog):
         qr code related commands
         '''
         if not ctx.invoked_subcommand:
-            await ctx.send_help(self.bot.get_command("qr"))
+            await ctx.reply_help(self.bot.get_command("qr"))
 
     @_qr.command(name="make")
     async def _make(self, ctx, *, message):
@@ -149,7 +182,7 @@ class Utility(commands.Cog):
         link = f"http://api.qrserver.com/v1/create-qr-code/?size=256x256&data={encoded}"
         qr_embed.set_image(url=link)
 
-        await ctx.send(embed=qr_embed)
+        await ctx.reply(embed=qr_embed)
 
     @_qr.command(name="read", aliases=["decode"])
     async def _read(self, ctx, code=None):
@@ -190,7 +223,7 @@ class Utility(commands.Cog):
         Morse code related commands
         '''
         if not ctx.invoked_subcommand:
-            await ctx.send_help(self.bot.get_command("morsecode"))
+            await ctx.reply_help(self.bot.get_command("morsecode"))
 
     @_morsecode.command(name="encode", aliases=["make"])
     async def _encode(self, ctx, *, message):
@@ -250,7 +283,7 @@ class Utility(commands.Cog):
 
     @commands.command(name="uptime")
     async def _uptime(self, ctx):
-        await ctx.send(**{"embed": discord.Embed(description=f"I've been up for: {__import__('humanize').precisedelta(self.bot.start_time, format='%0.0f')}", colour=self.bot.neutral_embed_colour)})
+        await ctx.reply(**{"embed": discord.Embed(description=f"I've been up for: {__import__('humanize').precisedelta(self.bot.start_time, format='%0.0f')}", colour=self.bot.neutral_embed_colour)})
 
     @executor_function
     def do_translate(self, message, dest="en", src="auto"):
@@ -311,54 +344,49 @@ class Utility(commands.Cog):
         '''
         Define the given word
         '''
-        try:
-            with ctx.channel.typing():
-                embeds = []
-                async with aiohttp.ClientSession() as cs:
-                    async with cs.get(f"https://api.dictionaryapi.dev/api/v2/entries/en/{word.replace(' ', '%20')}") as responses:
-                        jsonresponse = await responses.json()
-                if isinstance(jsonresponse, list):
-                    for response in jsonresponse:
-                        word = response.get("word")
-                        phonetics = response.get("phonetics")
-                        meanings = response.get("meanings")
-                        phoneticstext = phonetics[0].get("text", None)
-                        if meanings:
-                            if phoneticstext:
-                                embed = discord.Embed(
-                                    title=word, description=f"```\n{phoneticstext}```", colour=0x2F3136)
-                            else:
-                                embed = discord.Embed(title=word, colour=0x2F3136)
+        with ctx.typing():
+            embeds = []
+            async with aiohttp.ClientSession() as cs:
+                async with cs.get(f"https://api.dictionaryapi.dev/api/v2/entries/en/{word.replace(' ', '%20')}") as responses:
+                    jsonresponse = await responses.json()
+            if isinstance(jsonresponse, list):
+                for response in jsonresponse:
+                    word = response.get("word")
+                    phonetics = response.get("phonetics")
+                    meanings = response.get("meanings")
+                    phoneticstext = ""
+                    if phonetics: phoneticstext = phonetics[0].get("text", None)
+                    if meanings:
+                        if phoneticstext:
+                            embed = discord.Embed(
+                                title=word, description=f"```\n{phoneticstext}```", colour=0x2F3136)
+                        else:
+                            embed = discord.Embed(title=word, colour=0x2F3136)
 
-                            for meaning in meanings:
-                                definitions = []
-                                for i, definition in enumerate(meaning["definitions"]):
-                                    definitions.append(
-                                        f"{i+1}) {definition['definition']}")
-                                embed.add_field(
-                                    name=meaning["partOfSpeech"], value="\n".join(definitions))
+                        for meaning in meanings:
+                            definitions = []
+                            for i, definition in enumerate(meaning["definitions"]):
+                                definitions.append(
+                                    f"{i+1}) {definition['definition']}")
+                            embed.add_field(
+                                name=meaning["partOfSpeech"], value="\n".join(definitions))
 
-                        embeds.append(embed)
+                    embeds.append(input(embed, None))
 
-                    if len(embeds) == 1:
-                        await ctx.send(embed=embeds[0])
-                    else:
-                        pages = paginator(ctx, remove_reactions=True)
-                        pages.add_reaction("\U000023ea", "first")
-                        pages.add_reaction("\U000025c0", "back")
-                        pages.add_reaction("\U0001f5d1", "delete")
-                        pages.add_reaction("\U000025b6", "next")
-                        pages.add_reaction("\U000023e9", "last")
-                        await pages.send(embeds)
+                if len(embeds) == 1:
+                    await ctx.reply(embed=embeds[0])
                 else:
-                    embed = discord.Embed(
-                        title="Error!", description=f"```diff\n- Couldn't find the word {word}!```", colour=self.bot.bad_embed_colour)
-                    await ctx.reply(embed=embed, mention_author=False)
-
-        except Exception as e:
-            embed = discord.Embed(
-                title="Error!", description=f"```diff\n- {e}```", colour=self.bot.bad_embed_colour)
-            await ctx.reply(embed=embed, mention_author=False)
+                    pages = paginator(ctx, remove_reactions=True)
+                    pages.add_reaction("\U000023ea", "first")
+                    pages.add_reaction("\U000025c0", "back")
+                    pages.add_reaction("\U0001f5d1", "delete")
+                    pages.add_reaction("\U000025b6", "next")
+                    pages.add_reaction("\U000023e9", "last")
+                    await pages.send(embeds)
+            else:
+                embed = discord.Embed(
+                    title="Error!", description=f"```diff\n- Couldn't find the word {word}!```", colour=self.bot.bad_embed_colour)
+                await ctx.reply(embed=embed, mention_author=False)
 
     @commands.command(name="mystbin")
     async def _mystbin(self, ctx, *, text: codeblock_converter):
@@ -400,9 +428,9 @@ class Utility(commands.Cog):
             return userinput, discord.File(buf, filename=f'{str(userinput).replace(" ", "_").strip("#")}.png')
         
     @commands.command(name="colour", aliases=["color"])
-    async def _colour(self, ctx, *, colour: commands.ColorConverter):
+    async def _colour(self, ctx, *, colour: ColourConverter):
         '''
-        Get a colour
+        See information on a colour
         '''
         with ctx.typing():
             colour = await self._make_colour(colour)
@@ -411,12 +439,59 @@ class Utility(commands.Cog):
                 embed=discord.Embed(colour=colour[0])
                 embed.add_field(name="Hex", value=f"#{''.join(f'{hex(c)[2:].upper():0>2}' for c in (colour[0].r, colour[0].g, colour[0].b))}")
                 embed.add_field(name="RGB", value=f"({', '.join([str(colour) for colour in (colour[0].r, colour[0].g, colour[0].b)])})")
+                embed.add_field(name="Integer", value=colour[0].value)
                 embed.set_thumbnail(url=f"attachment://{colour[1].filename}")
-                await ctx.send(embed=embed, file=colour[1])
+                await ctx.reply(embed=embed, file=colour[1])
             else:
                 await ctx.error("Uh oh! Something went wrong! If this keeps happening, please contact isaa_ctaylor#2494", reply=True)
 
+    @commands.command(name="afk")
+    async def _afk(self, ctx, *, reason=None):
+        '''
+        Set your afk reason. If someone pings you, I'll let them know
+        '''
+        try:
+            self.bot.afk
+        except AttributeError:
+            self.bot.afk = {}
+
+        self.bot.afk[ctx.author.id] = afkstatus(ctx.message.id, reason)
+        await ctx.reply(f"I have set your afk status to `{reason or 'None specified'}`", mention_author=False)
+        
+    @commands.command(name="spotify")
+    async def _spotify(self, ctx, *, member: discord.Member = None):
+        '''
+        See details on your/someone elses current spotify song
+        '''
+        member = member or ctx.author
+        
+        if not any([True for activity in member.activities if isinstance(activity, discord.Spotify)]):
+            return await ctx.error(f"{'That person is' if member != ctx.author else 'You are'} not listening to anything!", reply=True)
+        else:
+            for activity in member.activities:
+                if isinstance(activity, discord.Spotify):
+                    embed = discord.Embed(title=f"Listening to {activity.title} by {', '.join(activity.artists)} on album {activity.album}", url=f"https://open.spotify.com/track/{activity.track_id}", colour=activity.colour)
+                    embed.set_image(url=activity.album_cover_url)
+                    return await ctx.reply(embed=embed, mention_author=False)
+                
+    @commands.command(name="choose")
+    async def _choose(self, ctx, *options):
+        '''
+        Choose between the given options. Use quotes "like this" to include multiple words in a choice
+        '''
+        await ctx.reply(random.choice(options))
+        
+    @commands.command(name="echo")
+    async def _echo(self, ctx, *, message):
+        '''
+        Repeat a message
+        '''
+        await ctx.reply(message)
     
-    
+    @commands.command(name="avatar", aliases=["profilepicture", "profilepic", "pfp", "av"])
+    async def _avatar(self, ctx, *, member: discord.Member=None):
+        member = member or ctx.author
+        await ctx.reply(embed=discord.Embed(title=f"{member}'s avatar", colour=member.colour).set_image(url=member.avatar.url))
+        
 def setup(bot):
     bot.add_cog(Utility(bot))
