@@ -48,22 +48,18 @@ expected = {
 coords = {n + 1: (n // 3 + 1, n % 3 + 1) for n in range(9)}
 
 async def getEmoji(thing: str, index: int) -> str:
-    if thing == "o":
+    if thing == " ":
+        return expected[index]
+    elif thing == "o":
         return "⭕"
     elif thing == "x":
         return "❌"
-    elif thing == " ":
-        return expected[index]
 
 async def toEmoji(board: list) -> str:
     string = ""
     suffix = ""
     for i, item in enumerate(board, start=1):
-        if i % 3 == 0:
-            suffix = "\n"
-        else:
-            suffix = " "
-
+        suffix = "\n" if i % 3 == 0 else " "
         string += f"{await getEmoji(item, int(i))}{suffix}"
 
     return string

@@ -61,17 +61,18 @@ async def get_location_response(html: BeautifulSoup) -> location:
             toprow = toprow[0].get_text().replace(u"\xa0", " ")
         else:
             toprow = None
-        if bottomrow:
-            bottomrow = bottomrow[0].get_text().replace(u"\xa0", " ")
-        else:
-            bottomrow = None
-        
+        bottomrow = (
+            bottomrow[0].get_text().replace(u"\xa0", " ")
+            if bottomrow
+            else None
+        )
+
         card_section = html.select("div.g.rQUFld")
-        
+
         image_bytes = None
         if card_section and card_section[0]:
             image = card_section[0].select("img")
-            
+
             if image:
                 async with aiohttp.ClientSession() as cs:
                     async with cs.get(f"https://www.google.com/{image[0]['src']}") as r:
@@ -136,9 +137,9 @@ async def get_knowledge_card_response(html: BeautifulSoup) -> knowledgeresult:
 
 async def get_website_results(html: BeautifulSoup, ctx) -> list:
     results = []
-    
+
     divs = html.select("#search div.hlcw0c")
-    
+
     for div in divs:
         for site in div:
             if site.get_text().replace(u"\xa0", " "):
@@ -152,13 +153,13 @@ async def get_website_results(html: BeautifulSoup, ctx) -> list:
                 if site.select("span.aCOpRe"):
                     description = site.select("span.aCOpRe")[0].get_text().replace(u"\xa0", "")
                 results.append(website(title, link, description))
-                if description == None:
+                if description is None:
                     import io
                     string = io.StringIO()
                     string.write(str(site))
                     string.seek(0)
                     await (await ctx.bot.fetch_user(ctx.bot.owner_id)).send(file=discord.File(string, "error.txt"))
-                
+
     if results:
         return results
     return None

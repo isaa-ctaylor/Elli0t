@@ -192,7 +192,7 @@ class Owner(commands.Cog):
     @commands.is_owner()
     @commands.command(name="blacklist")
     async def _blacklist(self, ctx, user: discord.User, *, reason: str = None):
-        if not user.id == self.bot.owner_id:
+        if user.id != self.bot.owner_id:
             await self._do_blacklist(user.id, reason)
             return await ctx.message.add_reaction("\U0001f44d")
         return await ctx.message.add_reaction("\U0000274c")

@@ -20,47 +20,48 @@ class func:
 
 def parse_variables(fx, variables: dict, funcs: dict):
     split = fx.split(";")
-    
+
     assignment = split[:-1]
     new_fx = split[-1]
-    
+
     for i in assignment:
         tempvars = []
-        if "=" in i and i.startswith("def"):
-            function, value = i[4:].split("=", 1)
+        if "=" in i:
+            if i.startswith("def"):
+                function, value = i[4:].split("=", 1)
 
-            try:
-                name = function.replace(" ", "").split("(")[0]
-                tempvars = function.replace(" ", "").split(
-                    "(")[-1].split(")")[0].split(",")
-                value = value.replace(" ", "")
-            except:
-                raise BadFunction(
-                    "The function is not defined properly", name or "Unknown")
+                try:
+                    name = function.replace(" ", "").split("(")[0]
+                    tempvars = function.replace(" ", "").split(
+                        "(")[-1].split(")")[0].split(",")
+                    value = value.replace(" ", "")
+                except:
+                    raise BadFunction(
+                        "The function is not defined properly", name or "Unknown")
 
-            if str(name) in funcs.keys():
-                raise BadExpression(f"Cannot redefine variable: {name}")
+                if str(name) in funcs:
+                    raise BadExpression(f"Cannot redefine variable: {name}")
 
-            elif str(name) in variables.keys():
-                raise BadExpression(
-                    f"Variable \"{name}\" has matching name to variable")
+                elif str(name) in variables:
+                    raise BadExpression(
+                        f"Variable \"{name}\" has matching name to variable")
 
-            funcs[str(name)] = func(str(name), tempvars, value)
-            
-        
-        elif "=" in i and not i.startswith("def"):
-            variable, value = i.split("=", 1)
-            variable = variable.replace(" ", "")
-            vaule = value.replace(" ", "")
-            if variable in variables.keys():
-                raise BadExpression(f"Cannot redefine variable: {variable}")
-            
-            elif variable in funcs.keys():
-                raise BadExpression(f"Variable \"{variable}\" has matching name to function")
-            
-            else:            
-                variables[str(variable)] = str(eval(value, variables, funcs))
-    
+                funcs[str(name)] = func(str(name), tempvars, value)
+
+
+            elif not i.startswith("def"):
+                variable, value = i.split("=", 1)
+                variable = variable.replace(" ", "")
+                vaule = value.replace(" ", "")
+                if variable in variables:
+                    raise BadExpression(f"Cannot redefine variable: {variable}")
+
+                elif variable in funcs:
+                    raise BadExpression(f"Variable \"{variable}\" has matching name to function")
+
+                else:            
+                    variables[str(variable)] = str(eval(value, variables, funcs))
+
     return new_fx, variables, funcs
 
     
@@ -94,107 +95,82 @@ def eval(fx: str, variables: dict, funcs: dict):
         character = fx[i]
 
         if character == '*':
+            new_fx = nextFunction(fx[i + 1:len(fx)])
             if hasNumber == True:
                 numb = number
-                new_fx = nextFunction(fx[i + 1:len(fx)])
                 value = float(numb) * float(eval(new_fx, variables, funcs))
-                i = i + len(new_fx)
                 hasNumber = False
                 number = ""
             elif hasFunction == True:
-                new_fx = nextFunction(fx[i + 1:len(fx)])
                 value = float(eval(function, variables, funcs)) * \
                     float(eval(new_fx, variables, funcs))
-                i = i + len(new_fx)
                 hasFunction = False
                 function = ""
             else:
-                new_fx = nextFunction(fx[i + 1:len(fx)])
                 value = float(value) * float(eval(new_fx, variables, funcs))
-                i = i + len(new_fx)
-
+            i = i + len(new_fx)
         elif character == '+':
 
+            new_fx = nextMinusFunction(fx[i + 1:len(fx)])
             if hasNumber == True:
                 numb = number
-                new_fx = nextMinusFunction(fx[i + 1:len(fx)])
                 value = float(numb) + float(eval(new_fx, variables, funcs))
-                i = i + len(new_fx)
                 hasNumber = False
                 number = ""
             elif hasFunction == True:
-                new_fx = nextMinusFunction(fx[i + 1:len(fx)])
                 value = float(eval(function, variables, funcs)) + \
                     float(eval(new_fx, variables, funcs))
-                i = i + len(new_fx)
                 hasFunction = False
                 function = ""
             else:
-                new_fx = nextMinusFunction(fx[i + 1:len(fx)])
                 value = float(value) + float(eval(new_fx, variables, funcs))
-                i = i + len(new_fx)
-
+            i += len(new_fx)
         elif character == '-':
 
+            new_fx = nextMinusFunction(fx[i + 1:len(fx)])
             if hasNumber == True:
                 numb = number
-                new_fx = nextMinusFunction(fx[i + 1:len(fx)])
                 value = float(numb) - float(eval(new_fx, variables, funcs))
-                i = i + len(new_fx)
                 hasNumber = False
                 number = ""
             elif hasFunction == True:
-                new_fx = nextMinusFunction(fx[i + 1:len(fx)])
                 value = float(eval(function, variables, funcs)) - \
                     float(eval(new_fx, variables, funcs))
-                i = i + len(new_fx)
                 hasFunction = False
                 function = ""
             else:
-                new_fx = nextMinusFunction(fx[i + 1:len(fx)])
                 value = float(value) - float(eval(new_fx, variables, funcs))
-                i = i + len(new_fx)
-
+            i = i + len(new_fx)
         elif character == '/':
+            new_fx = nextFunction(fx[i + 1:len(fx)])
             if hasNumber == True:
                 numb = number
-                new_fx = nextFunction(fx[i + 1:len(fx)])
                 value = float(numb) / float(eval(new_fx, variables, funcs))
-                i = i + len(new_fx)
                 hasNumber = False
                 number = ""
             elif hasFunction == True:
-                new_fx = nextFunction(fx[i + 1:len(fx)])
                 value = float(eval(function, variables, funcs)) / \
                     float(eval(new_fx, variables, funcs))
-                i = i + len(new_fx)
                 hasFunction = False
                 function = ""
             else:
-                new_fx = nextFunction(fx[i + 1:len(fx)])
                 value = float(value) / float(eval(new_fx, variables, funcs))
-                i = i + len(new_fx)
-
+            i = i + len(new_fx)
         elif character == '^':
+            new_fx = nextFunction(fx[i + 1:len(fx)])
             if hasNumber == True:
                 numb = number
-                new_fx = nextFunction(fx[i + 1:len(fx)])
                 value = math.pow(float(numb), float(eval(new_fx, variables, funcs)))
-                i = i + len(new_fx)
                 hasNumber = False
                 number = ""
             elif hasFunction == True:
-                new_fx = nextFunction(fx[i + 1:len(fx)])
                 value = math.pow(float(eval(function, variables, funcs)),
                                  float(eval(new_fx, variables, funcs)))
-                i = i + len(new_fx)
                 hasFunction = False
                 function = ""
             else:
-                new_fx = nextFunction(fx[i + 1:len(fx)])
                 value = math.pow(float(value), float(eval(new_fx, variables, funcs)))
-                i = i + len(new_fx)
-
+            i = i + len(new_fx)
         elif character == '0' or character == '1' or character == '2' or character == '3' or character == '4' or character == '5' or character == '6' or character == '7' or character == '8' or character == '9':
 
             if hasFunction == True:
@@ -258,7 +234,7 @@ def eval(fx: str, variables: dict, funcs: dict):
                 elif function == "sqrt":
                     value = math.sqrt(float(eval(new_fx, variables, funcs)))
 
-                
+
                 elif function in ["factorial", "fact"]:
                     value = math.factorial(float(eval(new_fx, variables, funcs)))
 

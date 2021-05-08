@@ -52,9 +52,7 @@ class Economy(commands.Cog):
         async with self.bot.db.pool.acquire() as con:
             data = await con.fetch("SELECT eco_enabled from userdata WHERE user_id = $1", member_id)
 
-        if data and dict(data[0])["eco_enabled"]:
-            return True
-        return False
+        return bool(data and dict(data[0])["eco_enabled"])
 
     @commands.command(name="register")
     async def _register(self, ctx):
@@ -76,15 +74,15 @@ class Economy(commands.Cog):
                 await con.execute("UPDATE userdata SET eco_enabled = $1, wallet = $2, bank = $2 WHERE user_id = $3", False, 0, ctx.author.id)
             embed = discord.Embed(
                 title="Done!", description=f"Sad to see you go! If you want to come back, use the `{ctx.prefix}register` command.", colour=self.bot.good_embed_colour)
-            await ctx.reply(embed=embed, mention_author=False)
         else:
             embed = discord.Embed(
                 title="Error!", description=f"You don't have an account! Use the `{ctx.prefix}register` command to make an account", colour=self.bot.bad_embed_colour)
-            await ctx.reply(embed=embed, mention_author=False)
+
+        await ctx.reply(embed=embed, mention_author=False)
 
     @commands.command(name="balance", aliases=["bal"])
     async def _balance(self, ctx, *, member: discord.Member = None):
-        member = member if member else ctx.author
+        member = member or ctx.author
 
         async with self.bot.db.pool.acquire() as con:
             data = await con.fetch("SELECT wallet, bank, eco_enabled FROM userdata WHERE user_id = $1", member.id)
@@ -207,33 +205,32 @@ class Economy(commands.Cog):
                 return await ctx.error("Invalid amount.", reply=True)
             async with self.bot.db.pool.acquire() as con:
                 authordata = await con.fetch("SELECT wallet, bank FROM userdata WHERE user_id = $1", ctx.author.id)
-                
+
                 memberdata = await con.fetch("SELECT wallet, bank FROM userdata WHERE user_id = $1", member.id)
 
                 if authordata and memberdata:
                     authordata = dict(authordata[0])
                     memberdata = dict(memberdata[0])
-                    
+
                     if amount > authordata["wallet"] and ctx.author.id != self.bot.owner_id:
                         embed = discord.Embed(title="Error!", description="You don't have enough coins to do that!", colour=self.bot.bad_embed_colour)
-                        return await ctx.reply(embed=embed, mention_author=False)
                     else:
                         newauthorwallet = authordata["wallet"]
-                        if not ctx.author.id == self.bot.owner_id:
+                        if ctx.author.id != self.bot.owner_id:
                             newauthorwallet = authordata["wallet"] - amount
                         newmemberwallet = memberdata["wallet"] + amount
-                        
+
                         await con.execute("UPDATE userdata SET wallet = $1 WHERE user_id = $2", newauthorwallet, ctx.author.id)
                         await con.execute("UPDATE userdata SET wallet = $1 WHERE user_id = $2", newmemberwallet, member.id)
-                        
+
                         embed = discord.Embed(title="Done!", description=f"You successfully payed {member.mention} `{amount}` coins!", colour=self.bot.good_embed_colour)
-                        return await ctx.reply(embed=embed, mention_author=False)
+                    return await ctx.reply(embed=embed, mention_author=False)
         else:
             async with self.bot.db.pool.acquire() as con:
                 authordata = await con.fetch("SELECT wallet, bank FROM userdata WHERE user_id = $1", ctx.author.id)
-                
+
                 memberdata = await con.fetch("SELECT wallet, bank FROM userdata WHERE user_id = $1", member.id)
-            
+
             if not authordata:
                 embed = discord.Embed(title="Error!", description="You do not have an account!", colour=self.bot.bad_embed_colour)
             else:
