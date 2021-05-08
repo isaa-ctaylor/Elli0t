@@ -178,9 +178,9 @@ class Dev(commands.Cog):
                         else:
                             if not isinstance(result, str):
                                 result = repr(result)
-
+                            result = result.replace("`", "\u200b`\u200b")
                             if len(result) > 2000:
-                                result = result.replace("`", "`\u200b")
+                                
                                 width = 2000
                                 pages = [result[i:i + width] for i in range(0, len(result), width)]
                                 
