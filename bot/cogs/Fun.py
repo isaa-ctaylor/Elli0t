@@ -22,18 +22,23 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-import discord
 import random
-from discord.ext import commands
-import xkcd_wrapper
+import re
+
 import aiohttp
-from sr_api import Client
+import discord
+import xkcd_wrapper
+from discord.ext import commands
 from inflect import engine
+from sr_api import Client
+from .backend.paginator.paginator import paginator, input
+
 
 class Fun(commands.Cog):
     '''
     Fun commands for when you are bored :D
     '''
+
     def __init__(self, bot):
         self.bot = bot
         self.xkcd = xkcd_wrapper.AsyncClient()
@@ -45,26 +50,26 @@ class Fun(commands.Cog):
         '''
         Ask the wise magic 8ball
         '''
-        await ctx.send(random.choice(["As I see it, yes.",
-                                      "Ask again later.",
-                                      "Better not tell you now.",
-                                      "Cannot predict now.",
-                                      "Concentrate and ask again.",
-                                      "Don’t count on it.",
-                                      "It is certain.",
-                                      "It is decidedly so.",
-                                      "Most likely.",
-                                      "My reply is no.",
-                                      "My sources say no.",
-                                      "Outlook not so good.",
-                                      "Outlook good.",
-                                      "Reply hazy, try again.",
-                                      "Signs point to yes.",
-                                      "Very doubtful.",
-                                      "Without a doubt.",
-                                      "Yes.",
-                                      "Yes – definitely.",
-                                      "You may rely on it."]))
+        await ctx.reply(random.choice(["As I see it, yes.",
+                                       "Ask again later.",
+                                       "Better not tell you now.",
+                                       "Cannot predict now.",
+                                       "Concentrate and ask again.",
+                                       "Don’t count on it.",
+                                       "It is certain.",
+                                       "It is decidedly so.",
+                                       "Most likely.",
+                                       "My reply is no.",
+                                       "My sources say no.",
+                                       "Outlook not so good.",
+                                       "Outlook good.",
+                                       "Reply hazy, try again.",
+                                       "Signs point to yes.",
+                                       "Very doubtful.",
+                                       "Without a doubt.",
+                                       "Yes.",
+                                       "Yes – definitely.",
+                                       "You may rely on it."]), mention_author=False)
 
     @commands.command(name="lick", aliases=["mlem"])
     async def _lick(self, ctx, person: discord.Member):
@@ -72,10 +77,10 @@ class Fun(commands.Cog):
         Mlem
         '''
         if person == ctx.author:
-            return await ctx.send("You can't lick yourself!")
-        
+            return await ctx.reply("You can't lick yourself!", mention_author=False)
+
         if person == self.bot.user:
-            return await ctx.send("I don't like being licked!")
+            return await ctx.reply("I don't like being licked!", mention_author=False)
 
         tastesLike = [
             "bacon",
@@ -94,11 +99,11 @@ class Fun(commands.Cog):
             "lemons",
             "cucumbers"
         ]
-        
-        await ctx.send(f"{ctx.author.mention} licked {person.mention}! They taste like {random.choice(tastesLike)}!")
-        
+
+        await ctx.reply(f"{ctx.author.mention} licked {person.mention}! They taste like {random.choice(tastesLike)}!", mention_author=False)
+
     @commands.command(name="xkcd")
-    async def _xkcd(self, ctx, number: int=None):
+    async def _xkcd(self, ctx, number: int = None):
         '''
         Get an xkcd comic
         '''
@@ -108,19 +113,22 @@ class Fun(commands.Cog):
                     try:
                         comic = await self.xkcd.get(number)
                     except TypeError:
-                        embed = discord.Embed(title="Error!", description=f"Couldn't find comic {number}", colour=self.bot.bad_embed_colour)
+                        embed = discord.Embed(
+                            title="Error!", description=f"Couldn't find comic {number}", colour=self.bot.bad_embed_colour)
                 else:
                     comic = await self.xkcd.get_random()
-                
+
                 if comic:
-                    embed = discord.Embed(title=comic.title, description=f"[Comic number {comic.id}]({comic.comic_url})\n{comic.description}", colour=self.bot.neutral_embed_colour)
-                    embed.set_image(url = comic.image_url)
-        
+                    embed = discord.Embed(
+                        title=comic.title, description=f"[Comic number {comic.id}]({comic.comic_url})\n{comic.description}", colour=self.bot.neutral_embed_colour)
+                    embed.set_image(url=comic.image_url)
+
         except Exception as e:
-            await ctx.send(type(e))
-            embed = discord.Embed(title="Error!", description="There was an error, please try again soon", colour=self.bot.bad_embed_colour)        
-        await ctx.send(embed = embed)
-    
+            await ctx.reply(type(e))
+            embed = discord.Embed(
+                title="Error!", description="There was an error, please try again soon", colour=self.bot.bad_embed_colour)
+        await ctx.reply(embed=embed, mention_author=False)
+
     @commands.group(name="fact")
     async def _fact(self, ctx):
         if not ctx.invoked_subcommand:
@@ -140,9 +148,10 @@ class Fun(commands.Cog):
                 ]
                 animal = random.choice(categories)
                 fact = await self.srapi.get_fact(animal)
-                embed = discord.Embed(title=f"A fun fact about {self.inflect.plural(animal)}", description=fact, colour=self.bot.neutral_embed_colour)
+                embed = discord.Embed(
+                    title=f"A fun fact about {self.inflect.plural(animal)}", description=fact, colour=self.bot.neutral_embed_colour)
                 await ctx.reply(embed=embed, mention_author=False)
-    
+
     @_fact.command(name="cat")
     async def _fact_cat(self, ctx):
         animal = "cat"
@@ -150,34 +159,68 @@ class Fun(commands.Cog):
         embed = discord.Embed(
             title=f"A fun fact about {self.inflect.plural(animal)}", description=fact, colour=self.bot.neutral_embed_colour)
         await ctx.reply(embed=embed, mention_author=False)
-    
+
     @_fact.command(name="dog")
     async def _fact_dog(self, ctx):
         animal = "dog"
         fact = await self.srapi.get_fact(animal)
-        embed = discord.Embed(title=f"A fun fact about {self.inflect.plural(animal)}", description=fact, colour=self.bot.neutral_embed_colour)
+        embed = discord.Embed(
+            title=f"A fun fact about {self.inflect.plural(animal)}", description=fact, colour=self.bot.neutral_embed_colour)
         await ctx.reply(embed=embed, mention_author=False)
-    
+
     @_fact.command(name="koala")
     async def _fact_koala(self, ctx):
         animal = "koala"
         fact = await self.srapi.get_fact(animal)
-        embed = discord.Embed(title=f"A fun fact about {self.inflect.plural(animal)}", description=fact, colour=self.bot.neutral_embed_colour)
+        embed = discord.Embed(
+            title=f"A fun fact about {self.inflect.plural(animal)}", description=fact, colour=self.bot.neutral_embed_colour)
         await ctx.reply(embed=embed, mention_author=False)
-        
+
     @_fact.command(name="fox")
     async def _fact_fox(self, ctx):
         animal = "fox"
         fact = await self.srapi.get_fact(animal)
-        embed = discord.Embed(title=f"A fun fact about {self.inflect.plural(animal)}", description=fact, colour=self.bot.neutral_embed_colour)
+        embed = discord.Embed(
+            title=f"A fun fact about {self.inflect.plural(animal)}", description=fact, colour=self.bot.neutral_embed_colour)
         await ctx.reply(embed=embed, mention_author=False)
-        
+
     @_fact.command(name="bird")
     async def _fact_bird(self, ctx):
         animal = "bird"
         fact = await self.srapi.get_fact(animal)
-        embed = discord.Embed(title=f"A fun fact about {self.inflect.plural(animal)}", description=fact, colour=self.bot.neutral_embed_colour)
+        embed = discord.Embed(
+            title=f"A fun fact about {self.inflect.plural(animal)}", description=fact, colour=self.bot.neutral_embed_colour)
         await ctx.reply(embed=embed, mention_author=False)
-    
+
+    @commands.command(name="urbandictionary", aliases=["urban", "ud"])
+    async def _urbandictionary(self, ctx, *, query):
+        async with aiohttp.ClientSession() as cs:
+            async with cs.get("http://api.urbandictionary.com/v0/define", params={"term": query}) as r:
+                jsondata = await r.json()
+
+        BRACKETS = re.compile(r"(\[(.+?)\])")
+
+        def repl(m):
+            word = m.group(2)
+
+            return f"[{word}](https://{word.replace(' ', '-')}.urbanup.com)"
+
+        embeds = []
+        for entry in jsondata["list"]:
+            description = BRACKETS.sub(repl, entry["definition"])
+            embed = discord.Embed(title=entry["word"], url=entry["permalink"], description=description, timestamp=discord.utils.parse_time(
+                entry["written_on"][0:-1]), colour=self.bot.neutral_embed_colour)
+            embed.set_footer(text=f"By {entry['author']}")
+            embeds.append(input(embed, None))
+
+        pages = paginator(ctx, remove_reactions=True)
+        pages.add_reaction("\U000023ea", "first")
+        pages.add_reaction("\U000025c0", "back")
+        pages.add_reaction("\U0001f5d1", "delete")
+        pages.add_reaction("\U000025b6", "next")
+        pages.add_reaction("\U000023e9", "last")
+        await pages.send(embeds)
+
+
 def setup(bot):
     bot.add_cog(Fun(bot))
