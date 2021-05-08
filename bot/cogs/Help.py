@@ -45,7 +45,7 @@ class helpcommand(commands.HelpCommand):
             embeds = thehelp
         
         for cog in mapping:
-            if mapping[cog] and await self.include_cog(cog):
+            if cog and mapping[cog] and await self.include_cog(cog):
                 coghelp = await self.get_cog_help(cog, ctx)
                 
                 for page in coghelp:
@@ -80,7 +80,7 @@ class helpcommand(commands.HelpCommand):
     async def send_command_help(self, command):
         ctx = self.context
 
-        await self.send_the_help(ctx, await self.get_command_help(command, ctx))
+        await self.send_the_help(ctx, await self.get_command_help(command))
 
     async def get_bot_help(self, mapping, ctx):
         pages = {}
@@ -110,10 +110,10 @@ class helpcommand(commands.HelpCommand):
         for item, i in enumerate(listofsmalldescriptions):
             if item == 0:
                 result.append(input(discord.Embed(title="Help", url="https://bit.ly/Elli0t",
-                                            description=f"{ctx.bot.description}\n```yaml\n{i}```", colour=0x2F3136).set_footer(text=f"Type {self.clean_prefix}help <category> for more help on a category", icon_url=ctx.author.avatar_url), None))
+                                            description=f"{ctx.bot.description}\n```yaml\n{i}```", colour=self.context.bot.neutral_embed_colour).set_footer(text=f"Type {self.context.clean_prefix}help <category> for more help on a category", icon_url=ctx.author.avatar.url), None))
             else:
                 result.append(input(discord.Embed(title="Help", url="https://bit.ly/Elli0t",
-                                            description=f"```yaml\n{i}```", colour=0x2F3136).set_footer(text=f"Type {self.clean_prefix}help <category> for more help on a category", icon_url=ctx.author.avatar_url), None))
+                                            description=f"```yaml\n{i}```", colour=self.context.bot.neutral_embed_colour).set_footer(text=f"Type {self.context.clean_prefix}help <category> for more help on a category", icon_url=ctx.author.avatar.url), None))
 
         return result
 
@@ -142,10 +142,10 @@ class helpcommand(commands.HelpCommand):
         for item, i in enumerate(listofsmalldescriptions):
             if item == 0:
                 result.append(input(discord.Embed(title=cog.qualified_name.capitalize() if cog.qualified_name else "Help", url="https://bit.ly/Elli0t",
-                                            description=f"{cog.description.capitalize() if cog.description else 'No description'}\n```yaml\n{i}```", colour=0x2F3136).set_footer(text=f"Type {self.clean_prefix}help <command> for more help on a command", icon_url=ctx.author.avatar_url), None))
+                                            description=f"{cog.description.capitalize() if cog.description else 'No description'}\n```yaml\n{i}```", colour=self.context.bot.neutral_embed_colour).set_footer(text=f"Type {self.context.clean_prefix}help <command> for more help on a command", icon_url=ctx.author.avatar.url), None))
             else:
                 result.append(input(discord.Embed(title=cog.qualified_name.capitalize() if cog.qualified_name else "Help", url="https://bit.ly/Elli0t",
-                                            description=f"```yaml\n{i}```", colour=0x2F3136).set_footer(text=f"Type {self.clean_prefix}help <command> for more help on a command", icon_url=ctx.author.avatar_url), None))
+                                            description=f"```yaml\n{i}```", colour=self.context.bot.neutral_embed_colour).set_footer(text=f"Type {self.context.clean_prefix}help <command> for more help on a command", icon_url=ctx.author.avatar.url), None))
         return result
 
     async def get_group_help(self, group, ctx):
@@ -173,19 +173,19 @@ class helpcommand(commands.HelpCommand):
             for item, i in enumerate(listofsmalldescriptions):
                 if item == 0:
                     result.append(input(discord.Embed(title=group.name.capitalize() if group.name else "Help", url="https://bit.ly/Elli0t",
-                                                description=f"```\n{self.get_command_signature(group)}```\n{group.help.capitalize() if group.help else 'No help'}\n```yaml\n{i}```", colour=0x2F3136).set_footer(text=f"Type {self.clean_prefix}help <command> for more help on a command", icon_url=ctx.author.avatar_url), None))
+                                                description=f"```\n{self.get_command_signature(group)}```\n{group.help.capitalize() if group.help else 'No help'}\n```yaml\n{i}```", colour=self.context.bot.neutral_embed_colour).set_footer(text=f"Type {self.context.clean_prefix}help <command> for more help on a command", icon_url=ctx.author.avatar.url), None))
                 else:
                     result.append(input(discord.Embed(title=group.name.capitalize() if group.name else "Help", url="https://bit.ly/Elli0t",
-                                                description=f"```yaml\n{i}```", colour=0x2F3136).set_footer(text=f"Type {self.clean_prefix}help <command> for more help on a command", icon_url=ctx.author.avatar_url), None))
+                                                description=f"```yaml\n{i}```", colour=self.context.bot.neutral_embed_colour).set_footer(text=f"Type {self.context.clean_prefix}help <command> for more help on a command", icon_url=ctx.author.avatar.url), None))
             return result
         else:
             return await self.command_not_found(group.name)
 
-    async def get_command_help(self, command, ctx):
+    async def get_command_help(self, command):
         if await self.include_cog(command.cog):
             usagestring = self.get_command_signature(command)
             embed = discord.Embed(title=command.name.capitalize() if command.name else "Help", url="http://bit.ly/Elli0t",
-                                    description=f"```\n{usagestring}```\n{command.help}", colour=0x2F3136)
+                                    description=f"```\n{usagestring}```\n{command.help or 'No help provided'}", colour=self.context.bot.neutral_embed_colour)
             cooldown = command._buckets._cooldown
             if cooldown:
                 embed.add_field(
@@ -200,15 +200,13 @@ class helpcommand(commands.HelpCommand):
             return await self.command_not_found(command.name)
 
     async def include_cog(self, cog):
-        return (cog.qualified_name not in ["Owner", "Dev", "Jishaku"]) if self.context.author.id != self.context.bot.owner_id else True
+        return (cog.qualified_name not in ["Owner", "Dev", "Jishaku", "Statcord"]) if self.context.author.id != self.context.bot.owner_id else True
 
     async def command_not_found(self, string):
-        ctx = self.context
-
         return discord.Embed(
             title="Error!",
             description=f"Couldn't find the command `{string}`!",
-            colour=0x2F3136,
+            colour=self.context.bot.neutral_embed_colour,
         )
 
     async def subcommand_not_found(self, command, string):
@@ -216,14 +214,14 @@ class helpcommand(commands.HelpCommand):
             return discord.Embed(
                 title="Error!",
                 description=f"The command `{command.qualified_name}` has no subcommand `{string}`!",
-                colour=0x2F3136,
+                colour=self.context.bot.neutral_embed_colour,
             )
 
         else:
             return discord.Embed(
                 title="Error!",
                 description=f"The command `{command.qualified_name}` has no subcommands!",
-                colour=0x2F3136,
+                colour=self.context.bot.neutral_embed_colour,
             )
 
     def split(self, a, sep, pos):
@@ -243,7 +241,7 @@ class helpcommand(commands.HelpCommand):
     async def send_the_help(self, ctx, thehelp):
         if isinstance(thehelp, list):
             if len(thehelp) == 0:
-                return await ctx.send(embed=await self.command_not_found(ctx.message.content.split("help ")[-1]))
+                return await ctx.reply(embed=await self.command_not_found(ctx.message.content.split("help ")[-1]))
             pages = paginator(ctx, remove_reactions=True)
             pages.add_reaction("\U000023ea", "first")
             pages.add_reaction("\U000025c0", "back")
@@ -253,16 +251,19 @@ class helpcommand(commands.HelpCommand):
             await pages.send(thehelp)
 
         elif isinstance(thehelp, discord.Embed):
-            await ctx.send(embed=thehelp)
+            await ctx.reply(embed=thehelp)
 
         else:
             if isinstance(thehelp, input):
-                await ctx.send(embed=thehelp.content, file=thehelp.picture)
+                await ctx.reply(embed=thehelp.content, file=thehelp.picture)
             else:
-                await ctx.send(thehelp)
+                await ctx.reply(thehelp)
 
 
 class Help(commands.Cog):
+    '''
+    The help menu
+    '''
     def __init__(self, bot):
         self.bot = bot
         self.bot._original_help_command = bot.help_command
