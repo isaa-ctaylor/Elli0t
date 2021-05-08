@@ -39,10 +39,10 @@ class Google(commands.Cog):
         self.bot = bot    
     
     @commands.cooldown(1, 5, BucketType.member)
-    @commands.command(name="google")
+    @commands.command(name="google", aliases=["g"])
     async def _google(self, ctx, *, query):
         with ctx.typing():
-            results = await get_results(query)
+            results = await get_results(query, ctx)
 
         if not any(results):
             embed = discord.Embed(
@@ -69,7 +69,7 @@ class Google(commands.Cog):
                 if results.calculator.output:
                     calculator_string += f"{results.calculator.output}"
                 embed = discord.Embed(
-                    title=f"Search results for {query}", description=calculator_string)
+                    title=f"Search results for {query}", description=calculator_string, colour=self.bot.neutral_embed_colour)
 
             elif results.knowledge:
                 knowledge_string = ""
@@ -88,7 +88,7 @@ class Google(commands.Cog):
                     picture = discord.File(
                         results.knowledge.image, f"{query.replace(' ', '_')}.png")
                 embed = discord.Embed(
-                    title=f"Search results for {query}", description=knowledge_string.strip('\n'))
+                    title=f"Search results for {query}", description=knowledge_string.strip('\n'), colour=self.bot.neutral_embed_colour)
 
                 if picture:
                     embed.set_thumbnail(url=f"attachment://{picture.filename}")
@@ -104,7 +104,8 @@ class Google(commands.Cog):
                     picture = discord.File(
                         results.location.image, f"{query.replace(' ', '_')}.png")
 
-                embed = discord.Embed(title=f"Search results for {query}", description=location_string.strip('\n'))
+                embed = discord.Embed(title=f"Search results for {query}", description=location_string.strip(
+                    '\n'), colour=self.bot.neutral_embed_colour)
                 if picture:
                     embed.set_image(url=f"attachment://{picture.filename}")
             
@@ -117,7 +118,8 @@ class Google(commands.Cog):
                 if results.featured_snippet.link["name"] and results.featured_snippet.link["href"]:
                     snippet_string += f"[{results.featured_snippet.link['name']}]({results.featured_snippet.link['href']})\n"
                 
-                embed = discord.Embed(title=f"Search results for {query}", description=snippet_string.strip('\n'))
+                embed = discord.Embed(title=f"Search results for {query}", description=snippet_string.strip(
+                    '\n'), colour=self.bot.neutral_embed_colour)
             
             if embed:
                 results = []
@@ -127,7 +129,8 @@ class Google(commands.Cog):
                     results.append(input(embed, picture))
                     if len(websitelist) > 1:
                         for page in websitelist[1:]:
-                            embed = discord.Embed(description=page.strip("\n"))
+                            embed = discord.Embed(description=page.strip(
+                                "\n"), colour=self.bot.neutral_embed_colour)
                             if picture:
                                 embed.set_thumbnail(
                                     url=f"attachment://{picture.filename}")
@@ -145,13 +148,14 @@ class Google(commands.Cog):
                 if websitelist:
                     results = []
                     embed = discord.Embed(
-                        title=f"Search results for {query}", description="")
+                        title=f"Search results for {query}", description="", colour=self.bot.neutral_embed_colour)
                     page = websitelist[0].strip("\n")
                     embed.description = f"{embed.description}\n\n{page}"
                     results.append(input(embed, picture))
                     if len(websitelist) > 1:
                         for page in websitelist[1:]:
-                            embed = discord.Embed(description=page.strip("\n"))
+                            embed = discord.Embed(description=page.strip(
+                                "\n"), colour=self.bot.neutral_embed_colour)
                             if picture:
                                 embed.set_thumbnail(
                                     url=f"attachment://{picture.filename}")
