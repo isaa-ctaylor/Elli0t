@@ -24,8 +24,7 @@ SOFTWARE.
 
 import discord
 from discord.ext import commands
-from typing import Optional, List, Union
-
+import asyncio
 
 class Elli0tContext(commands.Context):
     async def codeblock(self, code: str = None, language: str = None):
@@ -33,33 +32,87 @@ class Elli0tContext(commands.Context):
 
     cb = codeblock
 
-    async def embed(self, *, title: Optional[str] = None, url: Optional[str] = None, description: Optional[str] = None, fields: Optional[List[dict]] = None, colour: Optional[Union[discord.Colour, int]] = 0, footer: Optional[dict] = None, image: Optional[str] = None, thumbnail: Optional[str] = None, author: Optional[dict] = None):
-        embed = discord.Embed(title=title, url=url,
-                              description=description, colour=colour)
-
-        if fields:
-            for field in fields:
-                embed.add_field(name=field.get("name", "None"), value=field.get(
-                    "value", "None"), inline=field.get("inline", False))
-
-        if footer:
-            embed.set_footer(text=footer.get("text", "None"), icon_url=footer.get(
-                "icon_url", "https://cdn.discordapp.com/embed/avatars/0.png"))
-
-        if image:
-            embed.set_image(url=image)
-
-        if thumbnail:
-            embed.set_thumbnail(url=thumbnail)
-
-        if author:
-            embed.set_author(author.get("name", "None"), url=author.get("url", "https://cdn.discordapp.com/embed/avatars/0.png",
-                                                                        icon_url=author.get("icon_url", "https://cdn.discordapp.com/embed/avatars/0.png")))
-
-        await self.send(embed=embed)
+    def _embed(self, **kwargs):
+        footertext = kwargs.pop("footertext", None)
+        footerurl = kwargs.pop("footerurl")
+        
+        if footertext:
+            return discord.Embed(**kwargs).set_footer(text=footertext, icon_url=footerurl)
+        return discord.Embed(**kwargs)
+    
+    async def embed(self, **kwargs):
+        reply = kwargs.pop("reply", False)
+        send_to = kwargs.pop("destination", self)
+        if reply:
+            return await send_to.reply(embed=self._embed(**kwargs))
+        else:
+            return await send_to.send(embed=self._embed(**kwargs))
         
     async def error(self, message, *, reply = False):
         embed = discord.Embed(title="Error!", description=f"```diff\n- {message}```", colour=self.bot.bad_embed_colour)
         if not reply:
             return await self.send(embed=embed)
         return await self.reply(embed=embed, mention_author=False)
+    
+    async def send(self, content: str = None, **kwargs):
+        new_message = kwargs.pop("new_message", False)
+        
+        try:
+            self.bot.message_cache
+        except AttributeError:
+            self.bot.message_cache = {}
+        
+        if not new_message:
+            message = self.bot.message_cache.get(self.message.id, None)
+
+            if message:
+                return await message.edit(content=content, **kwargs)
+
+        message = await super().send(content, **kwargs)
+
+        if self.author.id == self.bot.owner_id:
+            self.bot.message_cache[self.message.id] = message
+
+            async def clear_cached_message():
+                await asyncio.sleep(120)
+                try:
+                    del self.bot.message_cache[self.message.id]
+                except KeyError:
+                    pass
+                
+            self.bot.loop.create_task(clear_cached_message())
+
+        return message
+    
+    async def reply(self, content: str=None, **kwargs):
+        new_message = kwargs.pop("new_message", False)
+
+        try:
+            self.bot.message_cache
+        except AttributeError:
+            self.bot.message_cache = {}
+
+        if not new_message:
+            message = self.bot.message_cache.get(self.message.id, None)
+
+            if message:
+                return await message.edit(content=content, **kwargs)
+
+        message = await super().reply(content, **kwargs)
+
+        if self.author.id == self.bot.owner_id:
+            self.bot.message_cache[self.message.id] = message
+
+            async def clear_cached_message():
+                await asyncio.sleep(120)
+                try:
+                    del self.bot.message_cache[self.message.id]
+                except KeyError:
+                    pass
+
+            self.bot.loop.create_task(clear_cached_message())
+
+        return message
+
+    async def isaac(self):
+        return self.bot.get_user(self.bot.owner_id)
