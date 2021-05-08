@@ -42,7 +42,8 @@ expected = {
     6: "6️⃣",
     7: "7️⃣",
     8: "8️⃣",
-    9: "9️⃣"}
+    9: "9️⃣",
+    "delete": "❌"}
 
 coords = {n + 1: (n // 3 + 1, n % 3 + 1) for n in range(9)}
 
@@ -159,15 +160,15 @@ class Games(commands.Cog):
         Play tic tac toe
         '''
         if opponent == ctx.author:
-            return await ctx.send(embed=discord.Embed(title="Error!", description="You can't play against yourself!", colour=self.bot.bad_embed_colour))
+            return await ctx.reply(embed=discord.Embed(title="Error!", description="You can't play against yourself!", colour=self.bot.bad_embed_colour))
 
         if opponent:
             def check(reaction, user):
                 return (user == opponent) and (str(reaction.emoji) in ["✅", "❎"])
 
             accept = discord.Embed(title="Tictactoe", description=f"{opponent.mention}, {ctx.author.mention} wants to play tictactoe with you!\nDo you accept?", colour=discord.Colour.green(
-            )).set_footer(text="React with ✅ if you want to play, and ❎ if you don't! | Request expires in 60 seconds.", icon_url=opponent.avatar_url)
-            msg = await ctx.send(f"{opponent.mention}", embed=accept)
+            )).set_footer(text="React with ✅ if you want to play, and ❎ if you don't! | Request expires in 60 seconds.", icon_url=opponent.avatar.url)
+            msg = await ctx.reply(f"{opponent.mention}", embed=accept)
 
             await msg.add_reaction("✅")
             await msg.add_reaction("❎")
@@ -202,7 +203,7 @@ class Games(commands.Cog):
                     board_embed = discord.Embed(title="Tic Tac Toe", description=board, colour=discord.Colour.green(
                     ) if player == opponent else self.bot.bad_embed_colour).add_field(name="Player", value=f"{player.mention}: {xOrO}")
 
-                    board_message = await ctx.send(embed=board_embed)
+                    board_message = await ctx.reply(embed=board_embed, new_message=True)
 
                     for reaction in expected:
                         await board_message.add_reaction(expected[reaction])
@@ -224,24 +225,28 @@ class Games(commands.Cog):
                                     except discord.errors.HTTPException:
                                         return
                                 else:
-                                    for key, time in enumerate(expected, start=1):
-                                        if str(number.emoji) == expected[key]:
-                                            place = time
+                                    if not str(number.emoji) == "❌":
+                                        for key, time in enumerate(expected, start=1):
+                                            if str(number.emoji) == expected[key]:
+                                                place = time
+                                                break
+
+                                        x, y = coords[place]
+                                        
+                                        if game.board[x, y] not in ["x", "o"]:
+                                            result = game.moveto(x, y)
+
+                                            try:
+                                                await number.message.clear_reaction(number.emoji)
+                                            except discord.errors.HTTPException:
+                                                pass
                                             break
-
-                                    x, y = coords[place]
-                                    
-                                    if game.board[x, y] not in ["x", "o"]:
-                                        result = game.moveto(x, y)
-
-                                        try:
-                                            await number.message.clear_reaction(number.emoji)
-                                        except discord.errors.HTTPException:
-                                            pass
-                                        break
-                                    
+                                        
+                                        else:
+                                            await ctx.reply("You can't move there!", delete_after=3, new_message=True)
                                     else:
-                                        await ctx.send("You can't move there!", delete_after=3)
+                                        await number.message.delete()
+                                        return await ctx.message.add_reaction("\U0001f44d")
 
                             if result['name'] == 'next-turn':
                                 player = opponent if player == ctx.author else ctx.author
@@ -292,7 +297,7 @@ class Games(commands.Cog):
             board_embed = discord.Embed(title="Tic Tac Toe", description=board, colour=discord.Colour.green(
             ) if player == opponent else self.bot.bad_embed_colour).add_field(name="Player", value=f"{player.mention}: {xOrO}")
 
-            board_message = await ctx.send(embed=board_embed)
+            board_message = await ctx.reply(embed=board_embed, new_message=True)
 
             for reaction in expected:
                 await board_message.add_reaction(expected[reaction])
@@ -362,24 +367,28 @@ class Games(commands.Cog):
                         except discord.errors.HTTPException:
                             return
                     else:
-                        for key, time in enumerate(expected, start=1):
-                            if str(number.emoji) == expected[key]:
-                                place = time
+                        if not str(number.emoji) == "❌":
+                            for key, time in enumerate(expected, start=1):
+                                if str(number.emoji) == expected[key]:
+                                    place = time
+                                    break
+
+                            x, y = coords[place]
+
+                            if game.board[x, y] not in ["x", "o"]:
+                            
+                                result = game.moveto(x, y)
+
+                                try:
+                                    await number.message.clear_reaction(number.emoji)
+                                except discord.errors.HTTPException:
+                                    pass
                                 break
-
-                        x, y = coords[place]
-
-                        if game.board[x, y] not in ["x", "o"]:
-                        
-                            result = game.moveto(x, y)
-
-                            try:
-                                await number.message.clear_reaction(number.emoji)
-                            except discord.errors.HTTPException:
-                                pass
-                            break
+                            else:
+                                await ctx.reply("You can't move there!", delete_after=3, new_message=True)
                         else:
-                            await ctx.send("You can't move there!", delete_after=3)
+                            await number.message.delete()
+                            return await ctx.message.add_reaction("\U0001f44d")
 
                 if result['name'] == 'next-turn':
                     player = ctx.guild.me if player == ctx.author else ctx.author
@@ -392,7 +401,7 @@ class Games(commands.Cog):
                 elif result['name'] == 'gameover':
                     if result['reason'] == 'winner':
                         win_embed = discord.Embed(
-                            title="🎉 Winner! 🎉", description=f"Congrats! {player.mention} won!", colour=discord.Colour.gold())
+                            title="🎉 Winner! 🎉", description=await toEmoji(game.board.cells), colour=discord.Colour.gold()).add_field(name="Winner", value=f"Congrats! You won!" if player == ctx.guild.me else "Haha! I beat you!")
                         await board_message.edit(embed=win_embed)
                         try:
                             return await board_message.clear_reactions()
@@ -431,7 +440,7 @@ class Games(commands.Cog):
 #         game_embed = discord.Embed(title = "Hangman", description = hangman[0], colour = discord.Colour.blurple())
 #         game_embed.add_field(name = "Word", value = f"`{string}`", inline = False)
 #         game_embed.add_field(name = "Incorrect", value = makestring(incorrect))
-#         game_message = await ctx.send(embed = game_embed)
+#         game_message = await ctx.reply(embed = game_embed)
         
 #         while not won:
 #             def check(m):
@@ -444,7 +453,7 @@ class Games(commands.Cog):
 #                 return await game_message.edit(embed = error_embed)
 #             else:
 #                 if message.content.lower() not in [chr(i) for i in range(92, 122)]:
-#                     await ctx.send("That's not a letter!", delete_after = 2)
+#                     await ctx.reply("That's not a letter!", delete_after = 2)
 #                 else:
 #                     if message.content.lower() in string:
 #                         indices = [i for i, x in enumerate(
